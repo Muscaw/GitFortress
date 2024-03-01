@@ -1,33 +1,16 @@
-name: Test and lint
+name: Publish to Pypi
 
 on:
-  pull_request: {}
   push:
-    branches:
-      - main
-  workflow_call: {}
+    tags:
+      - "[0-9]+.[0-9]+.[0-9]+"
 
 jobs:
-  build:
+  call-build:
+    uses: ./.github/workflows/package.yml
+  publish:
+    needs: call-build
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        shell: bash
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Set Up Go
-        uses: actions/setup-go@v4
-        with:
-          go-version: '1.22'
-      - name: Build
-        run: ./build.sh
-
-  build-docker:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        shell: bash
     steps:
       - uses: actions/checkout@v3
       - name: Docker metadata
@@ -40,11 +23,21 @@ jobs:
             type=ref,event=pr
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
-      - name: Build docker image
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Build and push docker image
         uses: docker/build-push-action@v5
         with:
           context: .
           file: ./docker/Dockerfile
-          push: false
+          push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+      - name: Generate release
+        uses: softprops/actions-gh-release@v1
+        with:
+          files: build/*
+          generate_release_notes: true

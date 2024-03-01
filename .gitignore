@@ -2,3 +2,4 @@ gitfortress
 main
 .vscode/
 .idea/
+build/
