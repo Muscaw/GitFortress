@@ -36,8 +36,11 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+      - name: List files
+        run: ls build/ && ls
       - name: Generate release
         uses: softprops/action-gh-release@v1
         with:
           files: build/*
+          fail_on_unmatched_files: true
           generate_release_notes: true
