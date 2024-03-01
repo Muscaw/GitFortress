@@ -1,0 +1,6 @@
+services:
+  gitfortress:
+    image: muscaw/gitfortress:latest
+    volumes:
+      - /path/to/config/directory:/etc/gitfortress
+      - /path/to/clone/directory:/backup
