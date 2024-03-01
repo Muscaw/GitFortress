@@ -21,7 +21,9 @@ jobs:
         with:
           go-version: '1.22'
       - name: Build
+        working-directory: src/
         run: go build cmd/app/main.go
+
   build-docker:
     runs-on: ubuntu-latest
     defaults:
