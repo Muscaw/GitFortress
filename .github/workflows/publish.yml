@@ -1,4 +1,4 @@
-name: Publish to Pypi
+name: Publish to DockerHub and create release
 
 on:
   push:
