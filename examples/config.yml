@@ -1,0 +1,7 @@
+github_token: <your-github-token>
+clone_folder_path: /path/to/backup
+ignore_repositories_regex:
+  - ^Muscaw/UnwantedRepo$      # Targets only Muscaw/UnwantedRepo
+  - Muscaw/UnwantedRepo        # Targets any repo containing the substring Muscaw/UnwantedRepo
+  - ^Muscaw/SetOfUnwanted.*$   # Anything starting with Muscaw/SetOfUnwanted will be ignored
+  - ^Muscaw/UnwantedRepo[1-7]$ # Will ignore UnwantedRepo 1 through 7
