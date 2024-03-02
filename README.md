@@ -40,18 +40,15 @@ GITFORTRESS_CLONE_FOLDER_PATH
 ```
 
 #### Fields Explanation
-- `github_token`: Your GitHub Personal Access Token (PAT) that allows GitFortress access to the GitHub API and private repositories.
-- `sync_delay`: The delay between two executions of the synchronizer. If the run lasts for more than sync_delay, it will be restarted immediately.
-- `clone_folder_path`: The directory where the repositories will be cloned and synchronized.
-- `ignore_repositories_regex`: A list of regex patterns for repositories to ignore during the cloning process. Repositories already cloned will still be synchronized.
 
-#### Mandatory Fields
-- `github_token`
-- `clone_folder_path`
+| Name                      | Description                                                                                                                                                                                                      | Mandatory          | Default Value  | Environment variable override         |
+|---------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------|----------------|---------------------------------------|
+| github_token              | Your Github [PAT](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens) that allows GitFortress access to the GitHub API and private repositories | :white_check_mark: | N/A            | GITFORTRESS_GITHUB_TOKEN              |
+| clone_folder_path         | Location on your filepath where to store all the cloned repositories                                                                                                                                             | :white_check_mark: | N/A            | GITFORTRESS_CLONE_FOLDER_PATH         |
+| sync_delay                | The delay between two executions of the synchronizer. If the run lasts for more than sync_delay, it will be restarted immediately.                                                                               |                    | 5m (5 minutes) | GITFORTRESS_SYNC_DELAY                |
+| ignore_repositories_regex | A list of regex patterns for repositories to ignore during the cloning process. Repositories already cloned will still be synchronized.                                                                          |                    | Empty list     | GITFORTRESS_IGNORE_REPOSITORIES_REGEX |
 
-#### Default Values
-- `sync_delay`: 5m
-- `ignore_repositories_regex`: empty list 
+
 
 ### Generating a GitHub PAT
 1. Go to GitHub Settings.
