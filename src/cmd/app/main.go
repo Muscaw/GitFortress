@@ -25,7 +25,7 @@ func main() {
 	localGit := system_git.GetLocalGit(cfg.CloneFolderPath, entity.Auth{Token: cfg.GithubToken})
 
 	var ignoredRepositoriesRegex []*regexp.Regexp
-	for _, i := range cfg.IgnoreRepositories {
+	for _, i := range cfg.IgnoreRepositoriesRegex {
 		ignoredRepositoriesRegex = append(ignoredRepositoriesRegex, regexp.MustCompile(i))
 	}
 	delay, err := time.ParseDuration(cfg.SyncDelay)

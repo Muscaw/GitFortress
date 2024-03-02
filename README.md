@@ -39,6 +39,11 @@ GITFORTRESS_GITHUB_TOKEN
 GITFORTRESS_CLONE_FOLDER_PATH
 ```
 
+Environment variables that refer to lists can be passed using commas to delimit the items: 
+```
+GITFORTRESS_IGNORE_REPOSITORIES_REGEX=^first-regex$,^second-regex$
+```
+
 #### Fields Explanation
 
 | Name                      | Description                                                                                                                                                                                                      | Mandatory          | Default Value  | Environment variable override         |
@@ -46,7 +51,7 @@ GITFORTRESS_CLONE_FOLDER_PATH
 | github_token              | Your Github [PAT](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens) that allows GitFortress access to the GitHub API and private repositories | :white_check_mark: | N/A            | GITFORTRESS_GITHUB_TOKEN              |
 | clone_folder_path         | Location on your filepath where to store all the cloned repositories                                                                                                                                             | :white_check_mark: | N/A            | GITFORTRESS_CLONE_FOLDER_PATH         |
 | sync_delay                | The delay between two executions of the synchronizer. If the run lasts for more than sync_delay, it will be restarted immediately.                                                                               |                    | 5m (5 minutes) | GITFORTRESS_SYNC_DELAY                |
-| ignore_repositories_regex | A list of regex patterns for repositories to ignore during the cloning process. Repositories already cloned will still be synchronized.                                                                          |                    | Empty list     | GITFORTRESS_IGNORE_REPOSITORIES_REGEX |
+| ignore_repositories_regex | A list of regex patterns for repositories to ignore during the cloning process. Repositories already cloned will still be synchronized.                                                                          |                    | [] Empty list  | GITFORTRESS_IGNORE_REPOSITORIES_REGEX |
 
 
 
