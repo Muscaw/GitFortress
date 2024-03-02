@@ -21,6 +21,7 @@ docker pull muscaw/gitfortress:latest
 Create a `config.yml` file with the following structure:
 ```
 github_token: "Your Github PAT token"
+sync_delay: "5m" # Uses Golang's units. Valid time units are "ns", "us", "ms", "s", "m", "h"
 clone_folder_path: "path/to/clone/folder"
 ignore_repositories_regex: []
 ```
@@ -40,6 +41,7 @@ GITFORTRESS_CLONE_FOLDER_PATH
 
 #### Fields Explanation
 - `github_token`: Your GitHub Personal Access Token (PAT) that allows GitFortress access to the GitHub API and private repositories.
+- `sync_delay`: The delay between two executions of the synchronizer. If the run lasts for more than sync_delay, it will be restarted immediately.
 - `clone_folder_path`: The directory where the repositories will be cloned and synchronized.
 - `ignore_repositories_regex`: A list of regex patterns for repositories to ignore during the cloning process. Repositories already cloned will still be synchronized.
 
@@ -48,6 +50,7 @@ GITFORTRESS_CLONE_FOLDER_PATH
 - `clone_folder_path`
 
 #### Default Values
+- `sync_delay`: 5m
 - `ignore_repositories_regex`: empty list 
 
 ### Generating a GitHub PAT

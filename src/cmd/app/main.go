@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"regexp"
 	"time"
@@ -27,8 +28,14 @@ func main() {
 	for _, i := range cfg.IgnoreRepositories {
 		ignoredRepositoriesRegex = append(ignoredRepositoriesRegex, regexp.MustCompile(i))
 	}
-
-	application.ScheduleEvery(1*time.Minute, func() {
+	delay, err := time.ParseDuration(cfg.SyncDelay)
+	if err != nil {
+		panic(fmt.Errorf("could not parse configuration sync_delay value %v", cfg.SyncDelay))
+	}
+	if delay.Seconds() <= 0 {
+		panic(fmt.Errorf("sync_delay must be a positive duration strictly superior to 0: %v", cfg.SyncDelay))
+	}
+	application.ScheduleEvery(delay, func() {
 		application.SynchronizeRepos(ignoredRepositoriesRegex, localGit, client)
 	})
 }
