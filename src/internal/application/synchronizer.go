@@ -2,10 +2,10 @@ package application
 
 import (
 	"fmt"
+	"github.com/Muscaw/GitFortress/internal/domain/vcs/service"
 	"regexp"
 
 	"github.com/Muscaw/GitFortress/internal/domain/vcs/entity"
-	"github.com/Muscaw/GitFortress/internal/domain/vcs/service"
 	log "github.com/sirupsen/logrus"
 )
 
