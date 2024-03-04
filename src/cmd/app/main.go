@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"github.com/Muscaw/GitFortress/internal/application/metrics"
+	"github.com/Muscaw/GitFortress/internal/interfaces/influx"
 	"os"
 	"regexp"
 	"time"
@@ -20,6 +22,11 @@ func init() {
 
 func main() {
 	cfg := config.LoadConfig()
+
+	metricsService := metrics.GetMetricsService()
+	influxMetricHandler := influx.NewInfluxMetricsHandler()
+	metricsService.RegisterHandler(influxMetricHandler)
+	metricsService.Start()
 
 	client := github.GetGithubVCS(cfg.GithubToken)
 	localGit := system_git.GetLocalGit(cfg.CloneFolderPath, entity.Auth{Token: cfg.GithubToken})

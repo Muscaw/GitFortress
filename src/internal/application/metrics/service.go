@@ -1,6 +1,7 @@
 package metrics
 
 import (
+	"context"
 	"github.com/Muscaw/GitFortress/internal/domain/metrics/entity"
 	metricsservice "github.com/Muscaw/GitFortress/internal/domain/metrics/service"
 )
@@ -8,8 +9,12 @@ import (
 var service *metricsService
 
 type metricsService struct {
-	handlers []entity.MetricHandler
+	handlers []metricsservice.MetricsHandler
 	metrics  []entity.Metric
+}
+
+func (m *metricsService) RetrieveMetrics() []entity.Metric {
+	return m.metrics
 }
 
 func (m *metricsService) TrackCounter(name string) entity.Counter {
@@ -18,19 +23,19 @@ func (m *metricsService) TrackCounter(name string) entity.Counter {
 	return c
 }
 
-func (m *metricsService) RegisterHandler(handler entity.MetricHandler) {
+func (m *metricsService) RegisterHandler(handler metricsservice.MetricsHandler) {
 	m.handlers = append(m.handlers, handler)
 }
 
-func (m *metricsService) Start() {
+func (m *metricsService) Start(ctx context.Context) {
 	for _, handler := range m.handlers {
-		go handler.Start()
+		go handler.Start(ctx)
 	}
 }
 
 func GetMetricsService() metricsservice.MetricsService {
 	if service == nil {
-		service = &metricsService{handlers: []entity.MetricHandler{}}
+		service = &metricsService{handlers: []metricsservice.MetricsHandler{}}
 	}
 	return service
 }
