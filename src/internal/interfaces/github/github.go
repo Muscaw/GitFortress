@@ -2,6 +2,8 @@ package github
 
 import (
 	"context"
+	"fmt"
+	"os"
 
 	"github.com/Muscaw/GitFortress/internal/domain/vcs/entity"
 	"github.com/Muscaw/GitFortress/internal/domain/vcs/service"
@@ -19,6 +21,9 @@ func (v *githubVCS) ListOwnedRepositories() ([]entity.Repository, error) {
 	for {
 		repos, resp, err := v.client.Repositories.ListByAuthenticatedUser(context.Background(), options)
 		if err != nil {
+			if (resp != nil && resp.StatusCode >= 500) || os.IsTimeout(err) {
+				return nil, fmt.Errorf("could not list owned repos: %w", service.ListOwnedRepositoriesTransientError)
+			}
 			return nil, err
 		}
 		for _, r := range repos {

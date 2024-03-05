@@ -1,6 +1,7 @@
 package application
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
 
@@ -31,7 +32,12 @@ func SynchronizeRepos(ignoredRepositories []*regexp.Regexp, localVcs service.Loc
 
 	remoteRepos, err := remoteVcs.ListOwnedRepositories()
 	if err != nil {
-		panic(fmt.Errorf("could not list all owned repos: %w", err))
+		if errors.Is(err, service.ListOwnedRepositoriesTransientError) {
+			log.Infof("could not list remote owned repos")
+			return
+		} else {
+			panic(fmt.Errorf("could not list all owned repos: %w", err))
+		}
 	}
 
 	localRepos, err := localVcs.ListOwnedRepositories()
