@@ -9,21 +9,21 @@ import (
 var service *metricsService
 
 type metricsService struct {
-	handlers []metricsservice.MetricsHandler
-	metrics  []entity.Metric
+	handlers []metricsservice.MetricsPort
 }
 
-func (m *metricsService) RetrieveMetrics() []entity.Metric {
-	return m.metrics
+func (m *metricsService) Push(metric entity.Metric) {
+	for _, handler := range m.handlers {
+		handler.Handle(metric)
+	}
 }
 
 func (m *metricsService) TrackCounter(name string) entity.Counter {
-	c := newCounter(name)
-	m.metrics = append(m.metrics, c)
+	c := entity.NewCounter(name, m)
 	return c
 }
 
-func (m *metricsService) RegisterHandler(handler metricsservice.MetricsHandler) {
+func (m *metricsService) RegisterHandler(handler metricsservice.MetricsPort) {
 	m.handlers = append(m.handlers, handler)
 }
 
@@ -35,7 +35,7 @@ func (m *metricsService) Start(ctx context.Context) {
 
 func GetMetricsService() metricsservice.MetricsService {
 	if service == nil {
-		service = &metricsService{handlers: []metricsservice.MetricsHandler{}}
+		service = &metricsService{handlers: []metricsservice.MetricsPort{}}
 	}
 	return service
 }

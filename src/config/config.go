@@ -12,6 +12,12 @@ type Config struct {
 	CloneFolderPath         string   `yaml:"clone_folder_path" env:"GITFORTRESS_CLONE_FOLDER_PATH"`
 	IgnoreRepositoriesRegex []string `yaml:"ignore_repositories_regex" env:"GITFORTRESS_IGNORE_REPOSITORIES_REGEX" env-default:""`
 	SyncDelay               string   `yaml:"sync_delay" env:"GITFORTRESS_SYNC_DELAY" env-default:"5m"`
+	InfluxDBConfig          *struct {
+		InfluxDBUrl       string `yaml:"url" env:"GITFORTRESS_INFLUXDB_URL" env-required:"true"`
+		InfluxDBAuthToken string `yaml:"token" env:"GITFORTRESS_INFLUXDB_TOKEN" env-required:"false"`
+		OrganizationName  string `yaml:"org_name" env:"GITFORTRESS_INFLUXDB_ORG_NAME" env-required:"true"`
+		BucketName        string `yaml:"bucket_name" env:"GITFORTRESS_INFLUXDB_BUCKET_NAME" env-required:"true"`
+	} `yaml:"influx_db"`
 }
 
 func parseConfigFiles(configPaths ...string) (Config, error) {

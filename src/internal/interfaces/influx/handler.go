@@ -1,9 +1,13 @@
 package influx
 
 import (
+	"context"
 	"github.com/Muscaw/GitFortress/internal/domain/metrics/entity"
 	"github.com/Muscaw/GitFortress/internal/domain/metrics/service"
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
+	"github.com/influxdata/influxdb-client-go/v2/api"
+	"github.com/rs/zerolog/log"
+	"time"
 )
 
 type influxMetricHandler struct {
@@ -11,31 +15,45 @@ type influxMetricHandler struct {
 	influxDbAuthToken string
 	org               string
 	bucket            string
-	monitoredMetrics  []entity.Metric
+	metricChan        chan entity.Metric
 }
 
-func monitorCounter(counter entity.Counter, quit chan struct{}) {
-
+func (i *influxMetricHandler) Handle(metric entity.Metric) {
+	i.metricChan <- metric
 }
 
-func (i *influxMetricHandler) Start(metrics chan entity.Metric, quit chan struct{}) {
+func (i *influxMetricHandler) handleCounter(ctx context.Context, writeApi api.WriteAPIBlocking, counter entity.Counter) {
+	values := counter.Values()
+	interfaceValues := make(map[string]interface{}, len(values))
+	for k, v := range values {
+		interfaceValues[k] = v
+	}
+
+	point := influxdb2.NewPoint(counter.Name(), make(map[string]string, 0), interfaceValues, time.Now())
+	err := writeApi.WritePoint(ctx, point)
+	if err != nil {
+		log.Error().Err(err).Msg("could not write point to influx")
+		return
+	}
+}
+
+func (i *influxMetricHandler) Start(ctx context.Context) {
 	influxClient := influxdb2.NewClient(i.influxDbServerUrl, i.influxDbAuthToken)
-	api := influxClient.WriteAPIBlocking(i.org, i.bucket)
+	writeApi := influxClient.WriteAPIBlocking(i.org, i.bucket)
 
 	for {
 		select {
-		case m := <-metrics:
-			i.monitoredMetrics = append(i.monitoredMetrics, m)
-			switch m.(type) {
+		case m := <-i.metricChan:
+			switch metric := m.(type) {
 			case entity.Counter:
-				monitorCounter(m, quit)
+				i.handleCounter(ctx, writeApi, metric)
 			}
-		case <-quit:
+		case <-ctx.Done():
 			return
 		}
 	}
 }
 
-func NewInfluxMetricsHandler(influxDbServerUrl string, influxDbAuthToken string, org string, bucket string) service.MetricsHandler {
-	return &influxMetricHandler{influxDbServerUrl: influxDbServerUrl, influxDbAuthToken: influxDbAuthToken, org: org, bucket: bucket, monitoredMetrics: []*entity.Metric}
+func NewInfluxMetricsHandler(influxDbServerUrl string, influxDbAuthToken string, org string, bucket string) service.MetricsPort {
+	return &influxMetricHandler{influxDbServerUrl: influxDbServerUrl, influxDbAuthToken: influxDbAuthToken, org: org, bucket: bucket, metricChan: make(chan entity.Metric)}
 }

@@ -3,10 +3,10 @@ package application
 import (
 	"fmt"
 	"github.com/Muscaw/GitFortress/internal/domain/vcs/service"
+	"github.com/rs/zerolog/log"
 	"regexp"
 
 	"github.com/Muscaw/GitFortress/internal/domain/vcs/entity"
-	log "github.com/sirupsen/logrus"
 )
 
 func contains(slice []entity.Repository, repository entity.Repository) bool {
@@ -45,7 +45,7 @@ func SynchronizeRepos(ignoredRepositories []*regexp.Regexp, localVcs service.Loc
 			continue
 		}
 		if !contains(localRepos, remoteRepo) {
-			log.Printf("cloning repository %v", remoteRepo.GetFullName())
+			log.Info().Msgf("cloning repository %v", remoteRepo.GetFullName())
 			err := localVcs.CloneRepository(remoteRepo)
 			if err != nil {
 				log.Printf("could not clone repository %v because %+v", remoteRepo.GetFullName(), err)
@@ -60,10 +60,10 @@ func SynchronizeRepos(ignoredRepositories []*regexp.Regexp, localVcs service.Loc
 	}
 
 	for _, localRepo := range localRepos {
-		log.Printf("pulling repository %v", localRepo.GetFullName())
+		log.Info().Msgf("pulling repository %v", localRepo.GetFullName())
 		err := localVcs.SynchronizeRepository(localRepo)
 		if err != nil {
-			log.Printf("could not pull repository %v because %v", localRepo.GetFullName(), err)
+			log.Error().Err(err).Msgf("could not pull repository %v", localRepo.GetFullName())
 		}
 	}
 }
