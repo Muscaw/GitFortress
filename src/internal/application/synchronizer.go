@@ -2,12 +2,20 @@ package application
 
 import (
 	"fmt"
+	"github.com/Muscaw/GitFortress/internal/application/metrics"
+	metricsEntity "github.com/Muscaw/GitFortress/internal/domain/metrics/entity"
 	"github.com/Muscaw/GitFortress/internal/domain/vcs/service"
 	"github.com/rs/zerolog/log"
 	"regexp"
 
 	"github.com/Muscaw/GitFortress/internal/domain/vcs/entity"
 )
+
+var runCounter metricsEntity.Counter
+
+func init() {
+	runCounter = metrics.GetMetricsService().TrackCounter("synchronization")
+}
 
 func contains(slice []entity.Repository, repository entity.Repository) bool {
 	for _, e := range slice {
@@ -28,7 +36,6 @@ func isIgnoredRepository(ignoredRepositories []*regexp.Regexp, repository entity
 }
 
 func SynchronizeRepos(ignoredRepositories []*regexp.Regexp, localVcs service.LocalVCS, remoteVcs service.VCS) {
-
 	remoteRepos, err := remoteVcs.ListOwnedRepositories()
 	if err != nil {
 		panic(fmt.Errorf("could not list all owned repos: %w", err))
@@ -66,4 +73,5 @@ func SynchronizeRepos(ignoredRepositories []*regexp.Regexp, localVcs service.Loc
 			log.Error().Err(err).Msgf("could not pull repository %v", localRepo.GetFullName())
 		}
 	}
+	runCounter.Increment("executionCount")
 }
