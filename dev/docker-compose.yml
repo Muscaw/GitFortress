@@ -1,0 +1,18 @@
+services:
+  influx:
+    image: influxdb:latest
+    ports:
+      - 8086:8086
+    volumes:
+      - influxVolume:/var/lib/influxdb2
+  prometheus:
+    image: prom/prometheus
+    ports:
+      - 9090:9090
+    volumes:
+      - prometheusVolume:/prometheus
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+
+volumes:
+  influxVolume:
+  prometheusVolume:

@@ -9,4 +9,5 @@ type MetricsService interface {
 	RegisterHandler(handler MetricsPort)
 	Start(ctx context.Context)
 	TrackCounter(name string) entity.Counter
+	TrackGauge(name string) entity.Gauge
 }

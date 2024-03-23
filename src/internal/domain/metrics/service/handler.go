@@ -7,5 +7,5 @@ import (
 
 type MetricsPort interface {
 	Start(ctx context.Context)
-	Handle(metric entity.Metric)
+	Handle(metric entity.Metric, valueNames []string)
 }

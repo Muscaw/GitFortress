@@ -18,6 +18,10 @@ type Config struct {
 		OrganizationName  string `yaml:"org_name" env:"GITFORTRESS_INFLUXDB_ORG_NAME" env-required:"true"`
 		BucketName        string `yaml:"bucket_name" env:"GITFORTRESS_INFLUXDB_BUCKET_NAME" env-required:"true"`
 	} `yaml:"influx_db"`
+	PrometheusConfig *struct {
+		PrometheusExposedPort int  `yaml:"exposed_port" env:"GITFORTRESS_PROMETHEUS_EXPOSED_PORT" env-required:"true"`
+		AutoConvertNames      bool `yaml:"auto_convert_names" env:"GITFORTRESS_PROMETHEUS_AUTO_CONVERT_NAMES" env-required:"false" env-default:"false"`
+	} `yaml:"prometheus"`
 }
 
 func parseConfigFiles(configPaths ...string) (Config, error) {

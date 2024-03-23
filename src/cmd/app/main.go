@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/Muscaw/GitFortress/internal/application/metrics"
 	"github.com/Muscaw/GitFortress/internal/interfaces/influx"
+	"github.com/Muscaw/GitFortress/internal/interfaces/prometheus"
 	"github.com/rs/zerolog"
 	"regexp"
 	"time"
@@ -29,9 +30,14 @@ func main() {
 		influxMetricHandler := influx.NewInfluxMetricsHandler(influxConfig.InfluxDBUrl, influxConfig.InfluxDBAuthToken, influxConfig.OrganizationName, influxConfig.BucketName)
 		metricsService.RegisterHandler(influxMetricHandler)
 	}
+	if cfg.PrometheusConfig != nil {
+		prometheusConfig := cfg.PrometheusConfig
+		prometheusMetricHandler := prometheus.NewPrometheusMetricsHandler(prometheusConfig.PrometheusExposedPort, prometheusConfig.AutoConvertNames)
+		metricsService.RegisterHandler(prometheusMetricHandler)
+	}
 	metricsService.Start(context.Background())
-	counter := metricsService.TrackCounter("hello")
-	counter.Increment("world")
+
+	metricsService.TrackCounter("hello").Increment("world")
 
 	client := github.GetGithubVCS(cfg.GithubToken)
 	localGit := system_git.GetLocalGit(cfg.CloneFolderPath, entity.Auth{Token: cfg.GithubToken})

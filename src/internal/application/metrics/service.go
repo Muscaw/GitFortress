@@ -12,15 +12,20 @@ type metricsService struct {
 	handlers []metricsservice.MetricsPort
 }
 
-func (m *metricsService) Push(metric entity.Metric) {
+func (m *metricsService) Push(metric entity.Metric, valueNames []string) {
 	for _, handler := range m.handlers {
-		handler.Handle(metric)
+		handler.Handle(metric, valueNames)
 	}
 }
 
 func (m *metricsService) TrackCounter(name string) entity.Counter {
 	c := entity.NewCounter(name, m)
 	return c
+}
+
+func (m *metricsService) TrackGauge(name string) entity.Gauge {
+	g := entity.NewGauge(name, m)
+	return g
 }
 
 func (m *metricsService) RegisterHandler(handler metricsservice.MetricsPort) {
