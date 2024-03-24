@@ -2,6 +2,7 @@ package influx
 
 import (
 	"context"
+	"fmt"
 	"github.com/Muscaw/GitFortress/internal/domain/metrics/entity"
 	"github.com/Muscaw/GitFortress/internal/domain/metrics/service"
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
@@ -20,11 +21,20 @@ type influxMetricHandler struct {
 	influxDbAuthToken string
 	org               string
 	bucket            string
+	metricNamePrefix  string
 	metricChan        chan handleTuple
 }
 
 func (i *influxMetricHandler) Handle(metric entity.Metric, valueNames []string) {
 	i.metricChan <- handleTuple{metric, valueNames}
+}
+
+func (i *influxMetricHandler) getName(metric entity.Metric) string {
+	if i.metricNamePrefix != "" {
+		return fmt.Sprintf("%v_%v", i.metricNamePrefix, metric.Name())
+	} else {
+		return metric.Name()
+	}
 }
 
 func (i *influxMetricHandler) handleCounter(ctx context.Context, writeApi api.WriteAPIBlocking, counter entity.Counter) {
@@ -34,11 +44,11 @@ func (i *influxMetricHandler) handleCounter(ctx context.Context, writeApi api.Wr
 		interfaceValues[k] = v
 	}
 
-	i.handleMetric(ctx, writeApi, counter.Name(), interfaceValues)
+	i.handleMetric(ctx, writeApi, i.getName(counter), interfaceValues)
 }
 
 func (i *influxMetricHandler) handleGauge(ctx context.Context, writeApi api.WriteAPIBlocking, gauge entity.Gauge) {
-	i.handleMetric(ctx, writeApi, gauge.Name(), gauge.Values())
+	i.handleMetric(ctx, writeApi, i.getName(gauge), gauge.Values())
 }
 
 func (i *influxMetricHandler) handleMetric(ctx context.Context, writeApi api.WriteAPIBlocking, metricName string, values map[string]any) {
@@ -74,6 +84,16 @@ func (i *influxMetricHandler) Start(ctx context.Context) {
 	}
 }
 
-func NewInfluxMetricsHandler(influxDbServerUrl string, influxDbAuthToken string, org string, bucket string) service.MetricsPort {
-	return &influxMetricHandler{influxDbServerUrl: influxDbServerUrl, influxDbAuthToken: influxDbAuthToken, org: org, bucket: bucket, metricChan: make(chan handleTuple)}
+type MetricHandlerOpts struct {
+	InfluxDBUrl       string
+	InfluxDBAuthToken string
+	InfluxDBOrg       string
+	InfluxDBBucket    string
+	MetricNamePrefix  string
+}
+
+func NewInfluxMetricsHandler(opts MetricHandlerOpts) service.MetricsPort {
+	return &influxMetricHandler{
+		influxDbServerUrl: opts.InfluxDBUrl,
+		influxDbAuthToken: opts.InfluxDBAuthToken, org: opts.InfluxDBOrg, bucket: opts.InfluxDBBucket, metricNamePrefix: opts.MetricNamePrefix, metricChan: make(chan handleTuple)}
 }

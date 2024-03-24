@@ -21,22 +21,29 @@ type metricHandler struct {
 	counters         map[string]prometheus.Counter
 	gauges           map[string]prometheus.Gauge
 	autoConvertNames bool
+	metricPrefixName string
 }
 
-func newMetricHandler(autoConvertNames bool) metricHandler {
+func newMetricHandler(autoConvertNames bool, metricPrefixName string) metricHandler {
 	return metricHandler{
 		counters:         map[string]prometheus.Counter{},
 		gauges:           map[string]prometheus.Gauge{},
 		autoConvertNames: autoConvertNames,
+		metricPrefixName: metricPrefixName,
 	}
 }
 
-func (m *metricHandler) getCounterName(name entity.Counter, valueName string) string {
+func (m *metricHandler) getCounterName(metric entity.Counter, valueName string) string {
 	format := "%v_%v"
 	if m.autoConvertNames {
 		format = "%v_%v_total"
 	}
-	return fmt.Sprintf(format, name.Name(), valueName)
+
+	if m.metricPrefixName != "" {
+		return fmt.Sprintf(fmt.Sprintf("%v_%v", m.metricPrefixName, format), metric.Name(), valueName)
+	} else {
+		return fmt.Sprintf(format, metric.Name(), valueName)
+	}
 }
 
 func (m *metricHandler) handleCounter(counter entity.Counter, valueNames []string) {
@@ -54,8 +61,12 @@ func (m *metricHandler) handleCounter(counter entity.Counter, valueNames []strin
 	}
 }
 
-func (m *metricHandler) getGaugeName(name entity.Gauge, valueName string) string {
-	return fmt.Sprintf("%v_%v", name.Name(), valueName)
+func (m *metricHandler) getGaugeName(metric entity.Gauge, valueName string) string {
+	if m.metricPrefixName != "" {
+		return fmt.Sprintf("%v_%v_%v", m.metricPrefixName, metric.Name(), valueName)
+	} else {
+		return fmt.Sprintf("%v_%v", metric.Name(), valueName)
+	}
 }
 
 func convertToFloat(value any) (float64, bool) {
@@ -146,6 +157,12 @@ func (p *prometheusMetricHandler) Handle(metric entity.Metric, valueNames []stri
 	p.metricChan <- handleTuple{metric, valueNames}
 }
 
-func NewPrometheusMetricsHandler(exposedPort int, autoConvertNames bool) service.MetricsPort {
-	return &prometheusMetricHandler{exposedPort: exposedPort, autoConvertNames: autoConvertNames, metricHandler: newMetricHandler(autoConvertNames), metricChan: make(chan handleTuple)}
+type MetricsHandlerOpts struct {
+	ExposedPort      int
+	AutoConvertNames bool
+	MetricPrefix     string
+}
+
+func NewPrometheusMetricsHandler(options MetricsHandlerOpts) service.MetricsPort {
+	return &prometheusMetricHandler{exposedPort: options.ExposedPort, autoConvertNames: options.AutoConvertNames, metricHandler: newMetricHandler(options.AutoConvertNames, options.MetricPrefix), metricChan: make(chan handleTuple)}
 }

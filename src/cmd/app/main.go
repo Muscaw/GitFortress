@@ -25,19 +25,30 @@ func main() {
 	cfg := config.LoadConfig()
 
 	metricsService := metrics.GetMetricsService()
+	commonMetricNamePrefix := "gitfortress"
 	if cfg.InfluxDBConfig != nil {
 		influxConfig := cfg.InfluxDBConfig
-		influxMetricHandler := influx.NewInfluxMetricsHandler(influxConfig.InfluxDBUrl, influxConfig.InfluxDBAuthToken, influxConfig.OrganizationName, influxConfig.BucketName)
+		influxMetricHandler := influx.NewInfluxMetricsHandler(influx.MetricHandlerOpts{
+			InfluxDBUrl:       influxConfig.InfluxDBUrl,
+			InfluxDBAuthToken: influxConfig.InfluxDBAuthToken,
+			InfluxDBOrg:       influxConfig.OrganizationName,
+			InfluxDBBucket:    influxConfig.BucketName,
+			MetricNamePrefix:  commonMetricNamePrefix,
+		})
 		metricsService.RegisterHandler(influxMetricHandler)
 	}
 	if cfg.PrometheusConfig != nil {
 		prometheusConfig := cfg.PrometheusConfig
-		prometheusMetricHandler := prometheus.NewPrometheusMetricsHandler(prometheusConfig.PrometheusExposedPort, prometheusConfig.AutoConvertNames)
+		prometheusMetricHandler := prometheus.NewPrometheusMetricsHandler(
+			prometheus.MetricsHandlerOpts{
+				ExposedPort:      prometheusConfig.PrometheusExposedPort,
+				AutoConvertNames: prometheusConfig.AutoConvertNames,
+				MetricPrefix:     commonMetricNamePrefix,
+			},
+		)
 		metricsService.RegisterHandler(prometheusMetricHandler)
 	}
 	metricsService.Start(context.Background())
-
-	metricsService.TrackCounter("hello").Increment("world")
 
 	client := github.GetGithubVCS(cfg.GithubToken)
 	localGit := system_git.GetLocalGit(cfg.CloneFolderPath, entity.Auth{Token: cfg.GithubToken})
