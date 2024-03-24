@@ -2,21 +2,20 @@ package application
 
 import (
 	"fmt"
+	"regexp"
+
 	"github.com/Muscaw/GitFortress/internal/application/metrics"
 	metricsEntity "github.com/Muscaw/GitFortress/internal/domain/metrics/entity"
 	"github.com/Muscaw/GitFortress/internal/domain/vcs/service"
 	"github.com/rs/zerolog/log"
-	"regexp"
 
 	"github.com/Muscaw/GitFortress/internal/domain/vcs/entity"
 )
 
-var runCounter metricsEntity.Counter
 var numberOfRepos metricsEntity.Gauge
 
 func init() {
-	runCounter = metrics.GetMetricsService().TrackCounter("synchronization")
-	numberOfRepos = metrics.GetMetricsService().TrackGauge("number_of_repos")
+	numberOfRepos = metrics.GetMetricsService().TrackGauge("synchronization_run")
 }
 
 func contains(slice []entity.Repository, repository entity.Repository) bool {
@@ -73,17 +72,21 @@ func SynchronizeRepos(ignoredRepositories []*regexp.Regexp, localVcs service.Loc
 		panic(fmt.Errorf("could not list all owned repos: %w", err))
 	}
 
+	numberOfSynchronizedRepositories := 0
 	for _, localRepo := range localRepos {
 		log.Info().Msgf("pulling repository %v", localRepo.GetFullName())
 		err := localVcs.SynchronizeRepository(localRepo)
 		if err != nil {
 			log.Error().Err(err).Msgf("could not pull repository %v", localRepo.GetFullName())
+		} else {
+			numberOfSynchronizedRepositories += 1
 		}
 	}
 	numberOfRepos.SetInts(map[string]int{
-		"local_repositories_count":   len(localRepos),
-		"ignored_repositories_count": ignoredReposCount,
-		"cloned_repositories_count":  clonedReposCount,
+		"local_repositories_count":        len(localRepos),
+		"ignored_repositories_count":      ignoredReposCount,
+		"cloned_repositories_count":       clonedReposCount,
+		"synchronized_repositories_count": numberOfSynchronizedRepositories,
+		"execution_count":                 1,
 	})
-	runCounter.Increment("execution_count")
 }
