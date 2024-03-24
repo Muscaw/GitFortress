@@ -1,8 +1,12 @@
 package main
 
 import (
+	"context"
 	"fmt"
-	"os"
+	"github.com/Muscaw/GitFortress/internal/application/metrics"
+	"github.com/Muscaw/GitFortress/internal/interfaces/influx"
+	"github.com/Muscaw/GitFortress/internal/interfaces/prometheus"
+	"github.com/rs/zerolog"
 	"regexp"
 	"time"
 
@@ -11,15 +15,40 @@ import (
 	"github.com/Muscaw/GitFortress/internal/domain/vcs/entity"
 	"github.com/Muscaw/GitFortress/internal/interfaces/github"
 	"github.com/Muscaw/GitFortress/internal/interfaces/system_git"
-	log "github.com/sirupsen/logrus"
 )
 
 func init() {
-	log.SetOutput(os.Stdout)
+	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 }
 
 func main() {
 	cfg := config.LoadConfig()
+
+	metricsService := metrics.GetMetricsService()
+	commonMetricNamePrefix := "gitfortress"
+	if cfg.InfluxDBConfig != nil {
+		influxConfig := cfg.InfluxDBConfig
+		influxMetricHandler := influx.NewInfluxMetricsHandler(influx.MetricHandlerOpts{
+			InfluxDBUrl:       influxConfig.InfluxDBUrl,
+			InfluxDBAuthToken: influxConfig.InfluxDBAuthToken,
+			InfluxDBOrg:       influxConfig.OrganizationName,
+			InfluxDBBucket:    influxConfig.BucketName,
+			MetricNamePrefix:  commonMetricNamePrefix,
+		})
+		metricsService.RegisterHandler(influxMetricHandler)
+	}
+	if cfg.PrometheusConfig != nil {
+		prometheusConfig := cfg.PrometheusConfig
+		prometheusMetricHandler := prometheus.NewPrometheusMetricsHandler(
+			prometheus.MetricsHandlerOpts{
+				ExposedPort:      prometheusConfig.PrometheusExposedPort,
+				AutoConvertNames: prometheusConfig.AutoConvertNames,
+				MetricPrefix:     commonMetricNamePrefix,
+			},
+		)
+		metricsService.RegisterHandler(prometheusMetricHandler)
+	}
+	metricsService.Start(context.Background())
 
 	client := github.GetGithubVCS(cfg.GithubToken)
 	localGit := system_git.GetLocalGit(cfg.CloneFolderPath, entity.Auth{Token: cfg.GithubToken})

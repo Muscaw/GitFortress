@@ -4,10 +4,19 @@ import (
 	"fmt"
 	"regexp"
 
-	"github.com/Muscaw/GitFortress/internal/domain/vcs/entity"
+	"github.com/Muscaw/GitFortress/internal/application/metrics"
+	metricsEntity "github.com/Muscaw/GitFortress/internal/domain/metrics/entity"
 	"github.com/Muscaw/GitFortress/internal/domain/vcs/service"
-	log "github.com/sirupsen/logrus"
+	"github.com/rs/zerolog/log"
+
+	"github.com/Muscaw/GitFortress/internal/domain/vcs/entity"
 )
+
+var numberOfRepos metricsEntity.Gauge
+
+func init() {
+	numberOfRepos = metrics.GetMetricsService().TrackGauge("synchronization_run")
+}
 
 func contains(slice []entity.Repository, repository entity.Repository) bool {
 	for _, e := range slice {
@@ -28,7 +37,6 @@ func isIgnoredRepository(ignoredRepositories []*regexp.Regexp, repository entity
 }
 
 func SynchronizeRepos(ignoredRepositories []*regexp.Regexp, localVcs service.LocalVCS, remoteVcs service.VCS) {
-
 	remoteRepos, err := remoteVcs.ListOwnedRepositories()
 	if err != nil {
 		panic(fmt.Errorf("could not list all owned repos: %w", err))
@@ -40,15 +48,20 @@ func SynchronizeRepos(ignoredRepositories []*regexp.Regexp, localVcs service.Loc
 		panic(fmt.Errorf("could not list all owned repos: %w", err))
 	}
 
+	ignoredReposCount := 0
+	clonedReposCount := 0
 	for _, remoteRepo := range remoteRepos {
 		if isIgnoredRepository(ignoredRepositories, remoteRepo) {
+			ignoredReposCount += 1
 			continue
 		}
 		if !contains(localRepos, remoteRepo) {
-			log.Printf("cloning repository %v", remoteRepo.GetFullName())
+			log.Info().Msgf("cloning repository %v", remoteRepo.GetFullName())
 			err := localVcs.CloneRepository(remoteRepo)
 			if err != nil {
 				log.Printf("could not clone repository %v because %+v", remoteRepo.GetFullName(), err)
+			} else {
+				clonedReposCount += 1
 			}
 		}
 	}
@@ -59,11 +72,21 @@ func SynchronizeRepos(ignoredRepositories []*regexp.Regexp, localVcs service.Loc
 		panic(fmt.Errorf("could not list all owned repos: %w", err))
 	}
 
+	numberOfSynchronizedRepositories := 0
 	for _, localRepo := range localRepos {
-		log.Printf("pulling repository %v", localRepo.GetFullName())
+		log.Info().Msgf("pulling repository %v", localRepo.GetFullName())
 		err := localVcs.SynchronizeRepository(localRepo)
 		if err != nil {
-			log.Printf("could not pull repository %v because %v", localRepo.GetFullName(), err)
+			log.Error().Err(err).Msgf("could not pull repository %v", localRepo.GetFullName())
+		} else {
+			numberOfSynchronizedRepositories += 1
 		}
 	}
+	numberOfRepos.SetInts(map[string]int{
+		"local_repositories_count":        len(localRepos),
+		"ignored_repositories_count":      ignoredReposCount,
+		"cloned_repositories_count":       clonedReposCount,
+		"synchronized_repositories_count": numberOfSynchronizedRepositories,
+		"execution_count":                 1,
+	})
 }

@@ -3,6 +3,7 @@ package system_git
 import (
 	"errors"
 	"fmt"
+	"github.com/rs/zerolog/log"
 	"io/fs"
 	"os"
 	"os/user"
@@ -14,7 +15,6 @@ import (
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
-	log "github.com/sirupsen/logrus"
 )
 
 func isDir(path string) (bool, error) {
@@ -183,7 +183,7 @@ func (l localGitVCS) SynchronizeRepository(repository entity.Repository) error {
 	})
 	if err != nil {
 		if errors.Is(err, git.NoErrAlreadyUpToDate) {
-			log.Infof("repository %v is already up to date", repository.GetFullName())
+			log.Info().Msgf("repository %v is already up to date", repository.GetFullName())
 		} else {
 			return fmt.Errorf("could not fetch repository %v: %w", repository.GetFullName(), err)
 		}
