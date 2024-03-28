@@ -1,9 +1,11 @@
 package application
 
 import (
-	"github.com/Muscaw/GitFortress/internal/domain/vcs/entity"
+	"fmt"
 	"regexp"
 	"testing"
+
+	"github.com/Muscaw/GitFortress/internal/domain/vcs/entity"
 )
 
 func Test_contains(t *testing.T) {
@@ -115,4 +117,220 @@ func Test_isIgnoredRepository(t *testing.T) {
 		}
 	})
 
+}
+
+type fakeLocalVcs struct {
+	ownedRepos               []entity.Repository
+	errorOnListOwnedRepos    error
+	clonedRepositories       []entity.Repository
+	errorOnCloneRepos        error
+	synchronizedRepositories []entity.Repository
+	errorOnSynchonizeRepos   error
+}
+
+func (f *fakeLocalVcs) ListOwnedRepositories() ([]entity.Repository, error) {
+	if f.errorOnListOwnedRepos != nil {
+		return []entity.Repository{}, f.errorOnListOwnedRepos
+	} else {
+		return f.ownedRepos, nil
+	}
+}
+
+func (f *fakeLocalVcs) CloneRepository(repository entity.Repository) error {
+	if f.errorOnCloneRepos != nil {
+		return f.errorOnCloneRepos
+	}
+	f.clonedRepositories = append(f.clonedRepositories, repository)
+	f.ownedRepos = append(f.ownedRepos, repository)
+	return nil
+}
+
+func (f *fakeLocalVcs) SynchronizeRepository(repository entity.Repository) error {
+	f.synchronizedRepositories = append(f.synchronizedRepositories, repository)
+	return f.errorOnSynchonizeRepos
+}
+
+type fakeRemoteVcs struct {
+	ownedRepos                 []entity.Repository
+	errorWhenListingOwnedRepos error
+}
+
+func (f *fakeRemoteVcs) ListOwnedRepositories() ([]entity.Repository, error) {
+	if f.errorWhenListingOwnedRepos != nil {
+		return []entity.Repository{}, f.errorWhenListingOwnedRepos
+	} else {
+		return f.ownedRepos, nil
+	}
+}
+
+func containsAll(slice1 []entity.Repository, slice2 []entity.Repository) bool {
+	if len(slice1) != len(slice2) {
+		return false
+	}
+	for i := range slice1 {
+		if slice1[i] != slice2[i] {
+			return false
+		}
+	}
+	return true
+}
+
+func Test_SynchronizeRepos(t *testing.T) {
+	aRepository := entity.Repository{
+		OwnerName:      entity.OwnerName{Name: "some_owner"},
+		RepositoryName: entity.RepositoryName{Name: "some_repo"},
+		Remote:         entity.Remote{Name: "origin", HttpUrl: "https://someurl"},
+	}
+	anIgnoredRepository := entity.Repository{
+		OwnerName:      entity.OwnerName{Name: "some_ignored_owner"},
+		RepositoryName: entity.RepositoryName{Name: "some_repo"},
+		Remote:         entity.Remote{Name: "origin", HttpUrl: "https://someurl"},
+	}
+	ignoredRepositoryRegex := regexOrFail("^some_ignored_owner.*", t)
+	t.Run("no repos are mirrored locally and no repos are ignored", func(t *testing.T) {
+		remoteVcs := fakeRemoteVcs{ownedRepos: []entity.Repository{aRepository}, errorWhenListingOwnedRepos: nil}
+		localVcs := fakeLocalVcs{ownedRepos: []entity.Repository{}}
+		ignoredRepositories := []*regexp.Regexp{}
+
+		SynchronizeRepos(ignoredRepositories, &localVcs, &remoteVcs)
+
+		expectedClonedAndSynchronizedRepos := []entity.Repository{aRepository}
+		if !containsAll(localVcs.clonedRepositories, expectedClonedAndSynchronizedRepos) {
+			t.Error("repository not present in local vcs was not cloned")
+		}
+
+		if !containsAll(localVcs.synchronizedRepositories, expectedClonedAndSynchronizedRepos) {
+			t.Error("repository not present in local synchronized repositories")
+		}
+	})
+
+	t.Run("remote repos exist locally and are not cloned and synchronized", func(t *testing.T) {
+		remoteVcs := fakeRemoteVcs{ownedRepos: []entity.Repository{aRepository}, errorWhenListingOwnedRepos: nil}
+		localVcs := fakeLocalVcs{ownedRepos: []entity.Repository{aRepository}}
+		ignoredRepositories := []*regexp.Regexp{}
+
+		SynchronizeRepos(ignoredRepositories, &localVcs, &remoteVcs)
+
+		if len(localVcs.clonedRepositories) != 0 {
+			t.Error("locally available repository should not be cloned again")
+		}
+
+		expectedSynchronizedRepositories := []entity.Repository{aRepository}
+		if !containsAll(localVcs.synchronizedRepositories, expectedSynchronizedRepositories) {
+			t.Error("repository not present in local synchronized repositories")
+		}
+	})
+
+	t.Run("remote repo does not exist in configured vcs, but exists locally. Synchronization occurs anyway", func(t *testing.T) {
+		remoteVcs := fakeRemoteVcs{ownedRepos: []entity.Repository{}, errorWhenListingOwnedRepos: nil}
+		localVcs := fakeLocalVcs{ownedRepos: []entity.Repository{aRepository}}
+		ignoredRepositories := []*regexp.Regexp{}
+
+		SynchronizeRepos(ignoredRepositories, &localVcs, &remoteVcs)
+
+		if len(localVcs.clonedRepositories) != 0 {
+			t.Error("locally available repository should not be cloned again")
+		}
+
+		expectedSynchronizedRepositories := []entity.Repository{aRepository}
+		if !containsAll(localVcs.synchronizedRepositories, expectedSynchronizedRepositories) {
+			t.Error("locally available repository must be synchronized even without remote counterpart")
+		}
+	})
+
+	t.Run("ignored repository is not cloned", func(t *testing.T) {
+		remoteVcs := fakeRemoteVcs{ownedRepos: []entity.Repository{aRepository, anIgnoredRepository}, errorWhenListingOwnedRepos: nil}
+		localVcs := fakeLocalVcs{ownedRepos: []entity.Repository{}}
+		ignoredRepositories := []*regexp.Regexp{ignoredRepositoryRegex}
+
+		SynchronizeRepos(ignoredRepositories, &localVcs, &remoteVcs)
+
+		expectedClonedAndSynchronizedRepos := []entity.Repository{aRepository}
+		if !containsAll(localVcs.clonedRepositories, expectedClonedAndSynchronizedRepos) {
+			t.Error("repository not present in local vcs was not cloned")
+		}
+
+		expectedSynchronizedRepositories := []entity.Repository{aRepository}
+		if !containsAll(localVcs.synchronizedRepositories, expectedSynchronizedRepositories) {
+			t.Error("locally available repository must be synchronized even without remote counterpart")
+		}
+	})
+
+	t.Run("ignored repository is present locally and synchronized", func(t *testing.T) {
+		remoteVcs := fakeRemoteVcs{ownedRepos: []entity.Repository{anIgnoredRepository}, errorWhenListingOwnedRepos: nil}
+		localVcs := fakeLocalVcs{ownedRepos: []entity.Repository{anIgnoredRepository}}
+		ignoredRepositories := []*regexp.Regexp{ignoredRepositoryRegex}
+
+		SynchronizeRepos(ignoredRepositories, &localVcs, &remoteVcs)
+
+		if len(localVcs.clonedRepositories) != 0 {
+			t.Error("locally available repository should not be cloned again")
+		}
+
+		expectedSynchronizedRepositories := []entity.Repository{anIgnoredRepository}
+		if !containsAll(localVcs.synchronizedRepositories, expectedSynchronizedRepositories) {
+			t.Error("locally available repository must be synchronized even without remote counterpart")
+		}
+	})
+
+	t.Run("error when listing remote vcs owned repos", func(t *testing.T) {
+		remoteVcs := fakeRemoteVcs{ownedRepos: []entity.Repository{aRepository}, errorWhenListingOwnedRepos: fmt.Errorf("could not load repos")}
+		localVcs := fakeLocalVcs{}
+		ignoredRepositories := []*regexp.Regexp{}
+
+		SynchronizeRepos(ignoredRepositories, &localVcs, &remoteVcs)
+
+		if len(localVcs.clonedRepositories) != 0 {
+			t.Error("should not clone repos if an error is return before")
+		}
+	})
+	t.Run("error when listing local vcs owned repos", func(t *testing.T) {
+		remoteVcs := fakeRemoteVcs{ownedRepos: []entity.Repository{aRepository}}
+		localVcs := fakeLocalVcs{errorOnListOwnedRepos: fmt.Errorf("could not list repos")}
+		ignoredRepositories := []*regexp.Regexp{}
+
+		SynchronizeRepos(ignoredRepositories, &localVcs, &remoteVcs)
+
+		if len(localVcs.clonedRepositories) != 0 {
+			t.Error("should not clone repos if an error is return before")
+		}
+
+		if len(localVcs.synchronizedRepositories) != 0 {
+			t.Error("should not synchronize repos if can not list repos")
+		}
+	})
+
+	t.Run("error when cloning owned repos", func(t *testing.T) {
+		remoteVcs := fakeRemoteVcs{ownedRepos: []entity.Repository{aRepository}, errorWhenListingOwnedRepos: nil}
+		localVcs := fakeLocalVcs{ownedRepos: []entity.Repository{}, errorOnCloneRepos: fmt.Errorf("could not list repos")}
+		ignoredRepositories := []*regexp.Regexp{}
+
+		SynchronizeRepos(ignoredRepositories, &localVcs, &remoteVcs)
+
+		if len(localVcs.clonedRepositories) != 0 {
+			t.Error("should have cloned repos and fail on them")
+		}
+
+		if len(localVcs.synchronizedRepositories) != 0 {
+			t.Error("should not sync repos if an error is return before")
+		}
+	})
+
+	t.Run("error when synchronizing local vcs repo should not fail the process", func(t *testing.T) {
+		remoteVcs := fakeRemoteVcs{ownedRepos: []entity.Repository{aRepository}, errorWhenListingOwnedRepos: nil}
+		localVcs := fakeLocalVcs{ownedRepos: []entity.Repository{}, errorOnSynchonizeRepos: fmt.Errorf("some error")}
+		ignoredRepositories := []*regexp.Regexp{}
+
+		SynchronizeRepos(ignoredRepositories, &localVcs, &remoteVcs)
+
+		expectedClonedRepositories := []entity.Repository{aRepository}
+
+		if !containsAll(localVcs.clonedRepositories, expectedClonedRepositories) {
+			t.Error("should have cloned repos and fail on them")
+		}
+
+		if len(localVcs.synchronizedRepositories) == 0 {
+			t.Error("should go through repos even in case of error")
+		}
+	})
 }

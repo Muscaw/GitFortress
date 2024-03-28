@@ -1,7 +1,6 @@
 package application
 
 import (
-	"fmt"
 	"regexp"
 
 	"github.com/Muscaw/GitFortress/internal/application/metrics"
@@ -39,13 +38,15 @@ func isIgnoredRepository(ignoredRepositories []*regexp.Regexp, repository entity
 func SynchronizeRepos(ignoredRepositories []*regexp.Regexp, localVcs service.LocalVCS, remoteVcs service.VCS) {
 	remoteRepos, err := remoteVcs.ListOwnedRepositories()
 	if err != nil {
-		panic(fmt.Errorf("could not list all owned repos: %w", err))
+		log.Err(err).Msg("could not list all owned repos")
+		return
 	}
 
 	localRepos, err := localVcs.ListOwnedRepositories()
 
 	if err != nil {
-		panic(fmt.Errorf("could not list all owned repos: %w", err))
+		log.Err(err).Msg("could not list all owned repos")
+		return
 	}
 
 	ignoredReposCount := 0
@@ -69,7 +70,8 @@ func SynchronizeRepos(ignoredRepositories []*regexp.Regexp, localVcs service.Loc
 	localRepos, err = localVcs.ListOwnedRepositories()
 
 	if err != nil {
-		panic(fmt.Errorf("could not list all owned repos: %w", err))
+		log.Err(err).Msg("could not list all owned repos")
+		return
 	}
 
 	numberOfSynchronizedRepositories := 0
