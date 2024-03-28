@@ -1,14 +1,26 @@
 package application
 
-import "time"
+import (
+	"context"
+	"time"
+)
 
-func ScheduleEvery(d time.Duration, f func()) {
-	ticker := time.NewTicker(d)
+type Ticker interface {
+	C() <-chan time.Time
+	Stop()
+}
+
+func ScheduleEvery(ticker Ticker, ctx context.Context, f func()) {
 	defer ticker.Stop()
 
 	// Executing the first time directly
 	f()
-	for range ticker.C {
-		f()
+	for {
+		select {
+		case <-ticker.C():
+			f()
+		case <-ctx.Done():
+			return
+		}
 	}
 }

@@ -38,9 +38,13 @@ func (m *metricsService) Start(ctx context.Context) {
 	}
 }
 
+func newMetricsService() *metricsService {
+	return &metricsService{handlers: make([]metricsservice.MetricsPort, 0)}
+}
+
 func GetMetricsService() metricsservice.MetricsService {
 	if service == nil {
-		service = &metricsService{handlers: []metricsservice.MetricsPort{}}
+		service = newMetricsService()
 	}
 	return service
 }

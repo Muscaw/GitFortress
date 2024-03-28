@@ -21,6 +21,18 @@ func init() {
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 }
 
+type Ticker struct {
+	ticker *time.Ticker
+}
+
+func (t *Ticker) C() <-chan time.Time {
+	return t.ticker.C
+}
+
+func (t *Ticker) Stop() {
+	t.ticker.Stop()
+}
+
 func main() {
 	cfg := config.LoadConfig()
 
@@ -48,7 +60,8 @@ func main() {
 		)
 		metricsService.RegisterHandler(prometheusMetricHandler)
 	}
-	metricsService.Start(context.Background())
+	ctx := context.Background()
+	metricsService.Start(ctx)
 
 	client := github.GetGithubVCS(cfg.GithubToken)
 	localGit := system_git.GetLocalGit(cfg.CloneFolderPath, entity.Auth{Token: cfg.GithubToken})
@@ -64,7 +77,7 @@ func main() {
 	if delay.Seconds() <= 0 {
 		panic(fmt.Errorf("sync_delay must be a positive duration strictly superior to 0: %v", cfg.SyncDelay))
 	}
-	application.ScheduleEvery(delay, func() {
+	application.ScheduleEvery(&Ticker{time.NewTicker(delay)}, ctx, func() {
 		application.SynchronizeRepos(ignoredRepositoriesRegex, localGit, client)
 	})
 }
