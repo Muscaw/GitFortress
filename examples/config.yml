@@ -5,3 +5,11 @@ ignore_repositories_regex:
   - Muscaw/UnwantedRepo        # Targets any repo containing the substring Muscaw/UnwantedRepo
   - ^Muscaw/SetOfUnwanted.*$   # Anything starting with Muscaw/SetOfUnwanted will be ignored
   - ^Muscaw/UnwantedRepo[1-7]$ # Will ignore UnwantedRepo 1 through 7
+influx: # Block is optional if influx is unused
+  url: "http://influxurl"
+  token: "influx_token"
+  org_name: "org_name"
+  bucket_name: "bucket_name"
+prometheus: # Block is optional if prometheus is unused
+  exposed_port: 1234
+  auto_convert_names: false # whether to automatically add _total for counter type metrics
