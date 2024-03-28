@@ -24,6 +24,14 @@ github_token: "Your Github PAT token"
 sync_delay: "5m" # Uses Golang's units. Valid time units are "ns", "us", "ms", "s", "m", "h"
 clone_folder_path: "path/to/clone/folder"
 ignore_repositories_regex: []
+influx_db: # Optional
+  url: "influx-url"
+  token: "influx-token"
+  org_name: "influx-org-name"
+  bucket_name: "influx-bucket-name"
+prometheus:
+  exposed_port: 1000 # exposed port for prometheus consumption
+  auto_convert_names: false # whether to automatically add a marker for counter type metrics such as _total
 ```
 
 GitFortress reads the following paths in the given order. If it finds a valid config file, it will use it and not search for the next config files.
