@@ -12,6 +12,7 @@ import (
 )
 
 var numberOfRepos metricsEntity.Gauge
+var executionCount int = 1
 
 func init() {
 	numberOfRepos = metrics.GetMetricsService().TrackGauge("synchronization_run")
@@ -90,6 +91,7 @@ func SynchronizeRepos(ignoredRepositories []*regexp.Regexp, localVcs service.Loc
 		"ignored_repositories_count":      ignoredReposCount,
 		"cloned_repositories_count":       clonedReposCount,
 		"synchronized_repositories_count": numberOfSynchronizedRepositories,
-		"execution_count":                 1,
+		"execution_count":                 executionCount,
 	})
+	executionCount += 1
 }
