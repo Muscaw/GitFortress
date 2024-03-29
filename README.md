@@ -6,6 +6,7 @@ GitFortress is a powerful tool designed to synchronize your GitHub repositories 
 - **Automatic Synchronization**: Clone all repos available to the user and continuously keep them in sync with the remote state.
 - **Flexibility**: Runs as a standalone binary or within a Docker container for ease of deployment and use.
 - **Configuration Freedom**: Customizable through a simple configuration file, allowing users to specify their backup preferences.
+- **Keeps track**: Publishes metrics to prometheus and/or influxdb 
 
 ## Installation Instructions
 
@@ -91,6 +92,14 @@ services:
 ```
 Replace the placeholders with the actual path to your configuration directory.
 
+
+## Metrics
+
+Both Prometheus and InfluxDB backends are supported and can be configured to publish execution metrics (see [config.yml](examples/config.yml)).
+
+A sample dashboard for Grafana is available in the [examples folder](examples/grafana_influx_dashboard.json).
+
+![Grafana Dashboard for GitFortress](examples/grafana_gitfortress.png)
 
 ## Contributing
 We welcome contributions! Please refer to our [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on how to make GitFortress better.
