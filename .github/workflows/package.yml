@@ -21,7 +21,7 @@ jobs:
 
       - name: Run tests
         working-directory: src/
-        run: go test -cover ./...
+        run: go test -race -coverprofile=coverae.out -covermode=atomic ./...
 
       - name: Run codecov
         uses: codecov/codecov-action@v4.0.1
