@@ -23,6 +23,11 @@ jobs:
         working-directory: src/
         run: go test ./...
 
+      - name: Run codecov
+        uses: codecov/codecov-action@v4.0.1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+
       - name: Build
         run: ./build.sh
 
