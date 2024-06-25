@@ -54,7 +54,7 @@ func Test_CloneListAndSynchronizeRepositoriesIntegration(t *testing.T) {
 	defer os.RemoveAll(dirName)
 
 	// Create some git repos
-	localGit := GetLocalGit(dirName, entity.Auth{Token: os.Getenv("GITFORTRESS_GITHUB_TOKEN")})
+	localGit := GetLocalGit(dirName, entity.Auth{Token: os.Getenv("GITHUB_TOKEN")})
 	repos, err := localGit.ListOwnedRepositories()
 	if err != nil {
 		t.Fatal("could not list owned repositories")
@@ -105,7 +105,7 @@ func Test_SynchronizeRepository_local_repository_has_references_not_present_on_r
 	defer os.RemoveAll(dirName)
 
 	// Create some git repos
-	localGit := GetLocalGit(dirName, entity.Auth{Token: os.Getenv("GITFORTRESS_GITHUB_TOKEN")})
+	localGit := GetLocalGit(dirName, entity.Auth{Token: os.Getenv("GITHUB_TOKEN")})
 	gitFortressRepo := entity.Repository{
 		OwnerName:      entity.OwnerName{Name: "Muscaw"},
 		RepositoryName: entity.RepositoryName{Name: "GitFortress"},
