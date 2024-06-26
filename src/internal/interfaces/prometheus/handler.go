@@ -3,13 +3,14 @@ package prometheus
 import (
 	"context"
 	"fmt"
+	"net/http"
+
 	"github.com/Muscaw/GitFortress/internal/domain/metrics/entity"
 	"github.com/Muscaw/GitFortress/internal/domain/metrics/service"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog/log"
-	"net/http"
 )
 
 type handleTuple struct {
@@ -118,6 +119,7 @@ func (m *metricHandler) handleGauge(gauge entity.Gauge, valueNames []string) {
 }
 
 type prometheusMetricHandler struct {
+	server           *http.Server
 	exposedPort      int
 	autoConvertNames bool
 	metricChan       chan handleTuple
@@ -139,6 +141,7 @@ func (p *prometheusMetricHandler) handleMetric(ctx context.Context) {
 
 		case <-ctx.Done():
 			log.Info().Msg("finished processing prometheus handler")
+			p.server.Shutdown(context.Background())
 			return
 		}
 	}
@@ -146,9 +149,7 @@ func (p *prometheusMetricHandler) handleMetric(ctx context.Context) {
 
 func (p *prometheusMetricHandler) Start(ctx context.Context) {
 	go p.handleMetric(ctx)
-	http.Handle("/metrics", promhttp.Handler())
-	err := http.ListenAndServe(fmt.Sprintf(":%v", p.exposedPort), nil)
-	if err != nil {
+	if err := p.server.ListenAndServe(); err != http.ErrServerClosed {
 		log.Err(err).Msgf("could not start http listener on port %v", p.exposedPort)
 	}
 }
@@ -164,5 +165,8 @@ type MetricsHandlerOpts struct {
 }
 
 func NewPrometheusMetricsHandler(options MetricsHandlerOpts) service.MetricsPort {
-	return &prometheusMetricHandler{exposedPort: options.ExposedPort, autoConvertNames: options.AutoConvertNames, metricHandler: newMetricHandler(options.AutoConvertNames, options.MetricPrefix), metricChan: make(chan handleTuple)}
+	mux := http.NewServeMux()
+	mux.Handle("/metrics", promhttp.Handler())
+	server := &http.Server{Addr: fmt.Sprintf(":%v", options.ExposedPort), Handler: mux}
+	return &prometheusMetricHandler{server: server, exposedPort: options.ExposedPort, autoConvertNames: options.AutoConvertNames, metricHandler: newMetricHandler(options.AutoConvertNames, options.MetricPrefix), metricChan: make(chan handleTuple)}
 }
