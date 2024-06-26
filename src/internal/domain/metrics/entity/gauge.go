@@ -25,12 +25,12 @@ func (g *gauge) Name() string {
 
 func (g *gauge) SetFloat(valueName string, value float64) {
 	g.values[valueName] = value
-	g.registry.Push(g, []string{valueName})
+	g.pushToRegistry([]string{valueName})
 }
 
 func (g *gauge) SetInt(valueName string, value int) {
 	g.values[valueName] = value
-	g.registry.Push(g, []string{valueName})
+	g.pushToRegistry([]string{valueName})
 }
 
 func (g *gauge) SetInts(values map[string]int) {
@@ -39,7 +39,12 @@ func (g *gauge) SetInts(values map[string]int) {
 		g.values[k] = v
 		keys = append(keys, k)
 	}
-	g.registry.Push(g, keys)
+	g.pushToRegistry(keys)
+}
+
+func (g *gauge) pushToRegistry(keys []string) {
+
+	g.registry.Push(MetricInformation{metricType: GAUGE_METRIC_TYPE, metricName: g.name, values: g.values}, keys)
 }
 
 func NewGauge(name string, registry MetricsRegistry) Gauge {

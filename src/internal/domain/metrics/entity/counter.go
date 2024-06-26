@@ -7,6 +7,14 @@ type Counter interface {
 	Increment(valueName string)
 }
 
+func convertMap(originalMap map[string]int) map[string]any {
+	convertedMap := make(map[string]any)
+	for key, value := range originalMap {
+		convertedMap[key] = any(value)
+	}
+	return convertedMap
+}
+
 type counter struct {
 	name     string
 	values   map[string]int
@@ -24,7 +32,8 @@ func (c *counter) Name() string {
 func (c *counter) Increment(valueName string) {
 	// No need to check for the key existence. Default value for int is return in case of absence of key
 	c.values[valueName] += 1
-	c.registry.Push(c, []string{valueName})
+	convertedValues := convertMap(c.values)
+	c.registry.Push(MetricInformation{metricType: COUNTER_METRIC_TYPE, metricName: c.name, values: convertedValues}, []string{valueName})
 }
 
 func NewCounter(name string, registry MetricsRegistry) Counter {

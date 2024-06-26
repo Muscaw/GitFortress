@@ -15,7 +15,7 @@ type fakeMetricsService struct {
 	metricsPort service.MetricsPort
 }
 
-func (f *fakeMetricsService) Push(metric entity.Metric, valueNames []string) {
+func (f *fakeMetricsService) Push(metric entity.MetricInformation, valueNames []string) {
 	f.metricsPort.Handle(metric, valueNames)
 }
 

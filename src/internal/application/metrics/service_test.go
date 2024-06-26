@@ -19,7 +19,7 @@ func Test_metricsService_creates_only_one_instance(t *testing.T) {
 
 type fakePort struct {
 	isStarted         bool
-	handledMetric     entity.Metric
+	handledMetric     entity.MetricInformation
 	handledValueNames []string
 	startWg           sync.WaitGroup
 	handleWg          sync.WaitGroup
@@ -31,7 +31,7 @@ func (f *fakePort) Start(ctx context.Context) {
 	f.isStarted = true
 }
 
-func (f *fakePort) Handle(metric entity.Metric, valueNames []string) {
+func (f *fakePort) Handle(metric entity.MetricInformation, valueNames []string) {
 	defer f.handleWg.Done()
 	f.handledMetric = metric
 	f.handledValueNames = valueNames
@@ -62,7 +62,7 @@ func Test_metricsService_TrackCounter(t *testing.T) {
 		t.Fatalf("handle call count is different from 1. Got %v", fakePort.handleCallCount)
 	}
 
-	if fakePort.handledMetric != counter {
+	if fakePort.handledMetric.MetricName() != counter.Name() {
 		t.Fatalf("fakePort handled an incorrect metric. Expected %v, got %v", counter, fakePort.handledMetric)
 	}
 
@@ -95,7 +95,7 @@ func Test_metricsService_TrackGauge(t *testing.T) {
 		t.Fatalf("handle call count is different from 1. Got %v", fakePort.handleCallCount)
 	}
 
-	if fakePort.handledMetric != counter {
+	if fakePort.handledMetric.MetricName() != counter.Name() {
 		t.Fatalf("fakePort handled an incorrect metric. Expected %v, got %v", counter, fakePort.handledMetric)
 	}
 

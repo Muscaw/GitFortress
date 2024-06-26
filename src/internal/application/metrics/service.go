@@ -2,6 +2,7 @@ package metrics
 
 import (
 	"context"
+
 	"github.com/Muscaw/GitFortress/internal/domain/metrics/entity"
 	metricsservice "github.com/Muscaw/GitFortress/internal/domain/metrics/service"
 )
@@ -12,7 +13,7 @@ type metricsService struct {
 	handlers []metricsservice.MetricsPort
 }
 
-func (m *metricsService) Push(metric entity.Metric, valueNames []string) {
+func (m *metricsService) Push(metric entity.MetricInformation, valueNames []string) {
 	for _, handler := range m.handlers {
 		handler.Handle(metric, valueNames)
 	}

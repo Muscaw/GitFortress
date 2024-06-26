@@ -15,5 +15,5 @@ type MetricsService interface {
 
 type MetricsPort interface {
 	Start(ctx context.Context)
-	Handle(metric entity.Metric, valueNames []string)
+	Handle(metric entity.MetricInformation, valueNames []string)
 }
