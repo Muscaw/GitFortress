@@ -3,18 +3,19 @@ package prometheus
 import (
 	"context"
 	"fmt"
+	"net/http"
+
 	"github.com/Muscaw/GitFortress/internal/domain/metrics/entity"
 	"github.com/Muscaw/GitFortress/internal/domain/metrics/service"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog/log"
-	"net/http"
 )
 
 type handleTuple struct {
-	metric     entity.Metric
-	valueNames []string
+	metricInformation entity.MetricInformation
+	valueNames        []string
 }
 
 type metricHandler struct {
@@ -33,20 +34,20 @@ func newMetricHandler(autoConvertNames bool, metricPrefixName string) metricHand
 	}
 }
 
-func (m *metricHandler) getCounterName(metric entity.Counter, valueName string) string {
+func (m *metricHandler) getCounterName(metric entity.MetricInformation, valueName string) string {
 	format := "%v_%v"
 	if m.autoConvertNames {
 		format = "%v_%v_total"
 	}
 
 	if m.metricPrefixName != "" {
-		return fmt.Sprintf(fmt.Sprintf("%v_%v", m.metricPrefixName, format), metric.Name(), valueName)
+		return fmt.Sprintf(fmt.Sprintf("%v_%v", m.metricPrefixName, format), metric.MetricName(), valueName)
 	} else {
-		return fmt.Sprintf(format, metric.Name(), valueName)
+		return fmt.Sprintf(format, metric.MetricName(), valueName)
 	}
 }
 
-func (m *metricHandler) handleCounter(counter entity.Counter, valueNames []string) {
+func (m *metricHandler) handleCounter(counter entity.MetricInformation, valueNames []string) {
 	for _, valueName := range valueNames {
 		name := m.getCounterName(counter, valueName)
 		val, ok := m.counters[name]
@@ -61,11 +62,11 @@ func (m *metricHandler) handleCounter(counter entity.Counter, valueNames []strin
 	}
 }
 
-func (m *metricHandler) getGaugeName(metric entity.Gauge, valueName string) string {
+func (m *metricHandler) getGaugeName(metric entity.MetricInformation, valueName string) string {
 	if m.metricPrefixName != "" {
-		return fmt.Sprintf("%v_%v_%v", m.metricPrefixName, metric.Name(), valueName)
+		return fmt.Sprintf("%v_%v_%v", m.metricPrefixName, metric.MetricName(), valueName)
 	} else {
-		return fmt.Sprintf("%v_%v", metric.Name(), valueName)
+		return fmt.Sprintf("%v_%v", metric.MetricName(), valueName)
 	}
 }
 
@@ -99,7 +100,7 @@ func convertToFloat(value any) (float64, bool) {
 	return 0, false
 }
 
-func (m *metricHandler) handleGauge(gauge entity.Gauge, valueNames []string) {
+func (m *metricHandler) handleGauge(gauge entity.MetricInformation, valueNames []string) {
 	for _, valueName := range valueNames {
 		name := m.getGaugeName(gauge, valueName)
 		val, ok := m.gauges[name]
@@ -118,6 +119,7 @@ func (m *metricHandler) handleGauge(gauge entity.Gauge, valueNames []string) {
 }
 
 type prometheusMetricHandler struct {
+	server           *http.Server
 	exposedPort      int
 	autoConvertNames bool
 	metricChan       chan handleTuple
@@ -128,17 +130,18 @@ func (p *prometheusMetricHandler) handleMetric(ctx context.Context) {
 	for {
 		select {
 		case m := <-p.metricChan:
-			switch metric := m.metric.(type) {
-			case entity.Counter:
-				p.metricHandler.handleCounter(metric, m.valueNames)
-			case entity.Gauge:
-				p.metricHandler.handleGauge(metric, m.valueNames)
+			switch m.metricInformation.MetricType() {
+			case entity.COUNTER_METRIC_TYPE:
+				p.metricHandler.handleCounter(m.metricInformation, m.valueNames)
+			case entity.GAUGE_METRIC_TYPE:
+				p.metricHandler.handleGauge(m.metricInformation, m.valueNames)
 			default:
-				log.Warn().Msgf("metric type %T is currently unsupported by prometheus handler", metric)
+				log.Warn().Msgf("metric type %v is currently unsupported by prometheus handler", m.metricInformation.MetricType())
 			}
 
 		case <-ctx.Done():
 			log.Info().Msg("finished processing prometheus handler")
+			p.server.Shutdown(context.Background())
 			return
 		}
 	}
@@ -146,14 +149,12 @@ func (p *prometheusMetricHandler) handleMetric(ctx context.Context) {
 
 func (p *prometheusMetricHandler) Start(ctx context.Context) {
 	go p.handleMetric(ctx)
-	http.Handle("/metrics", promhttp.Handler())
-	err := http.ListenAndServe(fmt.Sprintf(":%v", p.exposedPort), nil)
-	if err != nil {
+	if err := p.server.ListenAndServe(); err != http.ErrServerClosed {
 		log.Err(err).Msgf("could not start http listener on port %v", p.exposedPort)
 	}
 }
 
-func (p *prometheusMetricHandler) Handle(metric entity.Metric, valueNames []string) {
+func (p *prometheusMetricHandler) Handle(metric entity.MetricInformation, valueNames []string) {
 	p.metricChan <- handleTuple{metric, valueNames}
 }
 
@@ -164,5 +165,8 @@ type MetricsHandlerOpts struct {
 }
 
 func NewPrometheusMetricsHandler(options MetricsHandlerOpts) service.MetricsPort {
-	return &prometheusMetricHandler{exposedPort: options.ExposedPort, autoConvertNames: options.AutoConvertNames, metricHandler: newMetricHandler(options.AutoConvertNames, options.MetricPrefix), metricChan: make(chan handleTuple)}
+	mux := http.NewServeMux()
+	mux.Handle("/metrics", promhttp.Handler())
+	server := &http.Server{Addr: fmt.Sprintf(":%v", options.ExposedPort), Handler: mux}
+	return &prometheusMetricHandler{server: server, exposedPort: options.ExposedPort, autoConvertNames: options.AutoConvertNames, metricHandler: newMetricHandler(options.AutoConvertNames, options.MetricPrefix), metricChan: make(chan handleTuple)}
 }

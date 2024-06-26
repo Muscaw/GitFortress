@@ -3,17 +3,18 @@ package influx
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/Muscaw/GitFortress/internal/domain/metrics/entity"
 	"github.com/Muscaw/GitFortress/internal/domain/metrics/service"
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
 	"github.com/influxdata/influxdb-client-go/v2/api"
 	"github.com/rs/zerolog/log"
-	"time"
 )
 
 type handleTuple struct {
-	metric     entity.Metric
-	valueNames []string
+	metricInformation entity.MetricInformation
+	valueNames        []string
 }
 
 type influxMetricHandler struct {
@@ -25,19 +26,19 @@ type influxMetricHandler struct {
 	metricChan        chan handleTuple
 }
 
-func (i *influxMetricHandler) Handle(metric entity.Metric, valueNames []string) {
-	i.metricChan <- handleTuple{metric, valueNames}
+func (i *influxMetricHandler) Handle(metricInformation entity.MetricInformation, valueNames []string) {
+	i.metricChan <- handleTuple{metricInformation, valueNames}
 }
 
-func (i *influxMetricHandler) getName(metric entity.Metric) string {
+func (i *influxMetricHandler) getName(metric entity.MetricInformation) string {
 	if i.metricNamePrefix != "" {
-		return fmt.Sprintf("%v_%v", i.metricNamePrefix, metric.Name())
+		return fmt.Sprintf("%v_%v", i.metricNamePrefix, metric.MetricName())
 	} else {
-		return metric.Name()
+		return metric.MetricName()
 	}
 }
 
-func (i *influxMetricHandler) handleCounter(ctx context.Context, writeApi api.WriteAPIBlocking, counter entity.Counter) {
+func (i *influxMetricHandler) handleCounter(ctx context.Context, writeApi api.WriteAPIBlocking, counter entity.MetricInformation) {
 	values := counter.Values()
 	interfaceValues := make(map[string]interface{}, len(values))
 	for k, v := range values {
@@ -47,7 +48,7 @@ func (i *influxMetricHandler) handleCounter(ctx context.Context, writeApi api.Wr
 	i.handleMetric(ctx, writeApi, i.getName(counter), interfaceValues)
 }
 
-func (i *influxMetricHandler) handleGauge(ctx context.Context, writeApi api.WriteAPIBlocking, gauge entity.Gauge) {
+func (i *influxMetricHandler) handleGauge(ctx context.Context, writeApi api.WriteAPIBlocking, gauge entity.MetricInformation) {
 	i.handleMetric(ctx, writeApi, i.getName(gauge), gauge.Values())
 }
 
@@ -68,13 +69,13 @@ func (i *influxMetricHandler) Start(ctx context.Context) {
 	for {
 		select {
 		case m := <-i.metricChan:
-			switch metric := m.metric.(type) {
-			case entity.Counter:
-				i.handleCounter(ctx, writeApi, metric)
-			case entity.Gauge:
-				i.handleGauge(ctx, writeApi, metric)
+			switch m.metricInformation.MetricType() {
+			case entity.COUNTER_METRIC_TYPE:
+				i.handleCounter(ctx, writeApi, m.metricInformation)
+			case entity.GAUGE_METRIC_TYPE:
+				i.handleGauge(ctx, writeApi, m.metricInformation)
 			default:
-				log.Warn().Msgf("metric type %T is currently unsupported by influx handler", metric)
+				log.Warn().Msgf("metric type %v is currently unsupported by influx handler", m.metricInformation.MetricType())
 			}
 
 		case <-ctx.Done():
