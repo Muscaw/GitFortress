@@ -44,7 +44,11 @@ func (g *gauge) SetInts(values map[string]int) {
 
 func (g *gauge) pushToRegistry(keys []string) {
 
-	g.registry.Push(MetricInformation{metricType: GAUGE_METRIC_TYPE, metricName: g.name, values: g.values}, keys)
+	newValues := make(map[string]any, len(g.values))
+	for k, v := range g.values {
+		newValues[k] = v
+	}
+	g.registry.Push(MetricInformation{metricType: GAUGE_METRIC_TYPE, metricName: g.name, values: newValues}, keys)
 }
 
 func NewGauge(name string, registry MetricsRegistry) Gauge {
