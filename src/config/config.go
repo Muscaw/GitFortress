@@ -8,6 +8,7 @@ import (
 )
 
 type Config struct {
+	GithubURL               string   `yaml:"github_url" env:"GITFORTRESS_GITHUB_URL" env-default:"https://api.github.com/"`
 	GithubToken             string   `yaml:"github_token" env:"GITFORTRESS_GITHUB_TOKEN" env-required:"true"`
 	CloneFolderPath         string   `yaml:"clone_folder_path" env:"GITFORTRESS_CLONE_FOLDER_PATH"`
 	IgnoreRepositoriesRegex []string `yaml:"ignore_repositories_regex" env:"GITFORTRESS_IGNORE_REPOSITORIES_REGEX" env-default:""`

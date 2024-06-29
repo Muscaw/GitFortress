@@ -1,3 +1,4 @@
+github_url: <your-github-url> # Optional, defaults to the public cloud Github
 github_token: <your-github-token> # Mandatory
 clone_folder_path: /path/to/backup # Mandatory
 ignore_repositories_regex: # Optional

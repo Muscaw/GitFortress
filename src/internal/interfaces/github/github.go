@@ -10,7 +10,6 @@ import (
 
 type githubVCS struct {
 	client *github.Client
-	server string
 }
 
 func (v *githubVCS) ListOwnedRepositories() ([]entity.Repository, error) {
@@ -33,12 +32,16 @@ func (v *githubVCS) ListOwnedRepositories() ([]entity.Repository, error) {
 	return allRepos, nil
 }
 
-func GetGithubVCS(githubToken string) service.VCS {
-	return &githubVCS{client: getGithubClient(githubToken), server: "https://github.com/"}
+func GetGithubVCS(githubUrl string, githubToken string) (service.VCS, error) {
+	client, err := getGithubClient(githubUrl, githubToken)
+	if err != nil {
+		return nil, err
+	}
+	return &githubVCS{client: client}, nil
 }
 
-func getGithubClient(githubToken string) *github.Client {
-	return github.NewClient(nil).WithAuthToken(githubToken)
+func getGithubClient(githubUrl string, githubToken string) (*github.Client, error) {
+	return github.NewClient(nil).WithAuthToken(githubToken).WithEnterpriseURLs(githubUrl, githubUrl)
 }
 
 func githubRepositoryToDomainRepository(repo *github.Repository) entity.Repository {
