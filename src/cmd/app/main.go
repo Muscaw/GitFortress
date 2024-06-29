@@ -63,7 +63,10 @@ func main() {
 	ctx := context.Background()
 	metricsService.Start(ctx)
 
-	client := github.GetGithubVCS(cfg.GithubToken)
+	client, err := github.GetGithubVCS(cfg.GithubURL, cfg.GithubToken)
+	if err != nil {
+		panic(fmt.Errorf("could not start github client %w", err))
+	}
 	localGit := system_git.GetLocalGit(cfg.CloneFolderPath, entity.Auth{Token: cfg.GithubToken})
 
 	var ignoredRepositoriesRegex []*regexp.Regexp
