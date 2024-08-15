@@ -16,15 +16,19 @@ type GithubInput struct {
 	IgnoreRepositoriesRegex []string
 }
 
-func (i *GithubInput) FillDefaultValues() {
-    if i.TargetURL == "" {
-        i.TargetURL = "https://api.github.com"
-    }
+type Input struct {
+	Name      string
+	Type      string
+	TargetURL string
+	APIToken  string
 }
 
-func (i *GithubInput) Validate() error {
+func (i *Input) Validate() error {
 	if i.Name == "" {
 		return fmt.Errorf("input name must be set")
+	}
+	if !isInputTypeSupported(i.Type) {
+		return fmt.Errorf("input type is not supported: %v List of supported types: %v", i.Type, supportedInputTypes)
 	}
 	if i.TargetURL == "" {
 		return fmt.Errorf("input targetUrl must be set")
@@ -109,8 +113,18 @@ func (c *Config) Process() {
 }
 
 func (c *Config) Validate() error {
-	if err := c.Inputs.Validate(); err != nil {
-		return err
+	if len(c.Inputs) == 0 {
+		return fmt.Errorf("expected to have at least one input")
+	}
+	inputNames := map[string]bool{}
+	for _, i := range c.Inputs {
+		if err := i.Validate(); err != nil {
+			return err
+		}
+		if _, exists := inputNames[i.Name]; exists {
+			return fmt.Errorf("inputs must have unique names. name %v appears at least twice", i.Name)
+		}
+		inputNames[i.Name] = true
 	}
 	if c.CloneFolderPath == "" {
 		return fmt.Errorf("CloneFolderPath is empty")
