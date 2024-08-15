@@ -92,7 +92,7 @@ func main() {
 		panic(fmt.Errorf("could not proceed. clone folder path is not a directory: %v", cfg.CloneFolderPath))
 	}
 
-	for _, input := range cfg.Inputs.Github {
+	for _, input := range cfg.Inputs {
 		client, err := github.GetGithubVCS(input.TargetURL, input.APIToken)
 		if err != nil {
 			panic(fmt.Errorf("could not start github client %w", err))
