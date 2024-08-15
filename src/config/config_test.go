@@ -78,7 +78,7 @@ func Test_loadConfig(t *testing.T) {
 		viper.Reset()
 		viper.AddConfigPath(configFolder)
 
-		const goodConfigFile string = `---
+		const multipleInputWithSameNameConfig string = `---
 inputs:
   - name: "Some input name"
     type: github
@@ -101,7 +101,7 @@ prometheus:
   autoConvertNames: false
 `
 
-		err := os.WriteFile(path.Join(configFolder, "config.yml"), []byte(goodConfigFile), 0666)
+		err := os.WriteFile(path.Join(configFolder, "config.yml"), []byte(multipleInputWithSameNameConfig), 0666)
 		if err != nil {
 			t.FailNow()
 		}
