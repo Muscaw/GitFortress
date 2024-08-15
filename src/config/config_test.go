@@ -81,7 +81,8 @@ func Test_loadConfig(t *testing.T) {
 
 		const goodConfigFile string = `---
 inputs:
-  - type: github
+  - name: "Some input name"
+    type: github
     targetUrl: https://api.github.com
     apiToken: some-token
 cloneFolderPath: /path/to/backup
@@ -112,7 +113,7 @@ prometheus:
 
 		config := LoadConfig()
 		expectedConfig := Config{
-			Inputs:                  []Input{{Type: "github", TargetURL: "https://api.github.com", APIToken: "some-token"}},
+			Inputs:                  []Input{{Name: "Some input name", Type: "github", TargetURL: "https://api.github.com", APIToken: "some-token"}},
 			CloneFolderPath:         "/path/to/backup",
 			IgnoreRepositoriesRegex: []string{"a-repo-name"},
 			InfluxDB:                &InfluxDBConfig{Url: "http://influxurl", AuthToken: "influx_token", OrganizationName: "org_name", BucketName: "bucket_name"},
