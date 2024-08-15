@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os/user"
 	"path/filepath"
+	"strings"
 
 	"github.com/spf13/viper"
 )
@@ -86,6 +87,16 @@ type Config struct {
 	Prometheus      *PrometheusConfig
 }
 
+func (c *Config) Process() {
+	usr, _ := user.Current()
+	dir := usr.HomeDir
+	if c.CloneFolderPath == "~" {
+		c.CloneFolderPath = dir
+	} else if strings.HasPrefix(c.CloneFolderPath, "~/") {
+		c.CloneFolderPath = filepath.Join(dir, c.CloneFolderPath[2:])
+	}
+}
+
 func (c *Config) Validate() error {
 	if len(c.Inputs) == 0 {
 		return fmt.Errorf("expected to have at least one input")
@@ -151,5 +162,6 @@ func LoadConfig() Config {
 	if err != nil {
 		panic(fmt.Errorf("could not validate config: %w", err))
 	}
+	config.Process()
 	return config
 }

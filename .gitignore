@@ -3,3 +3,4 @@ main
 .vscode/
 .idea/
 build/
+**/__debug_bin*

@@ -48,7 +48,7 @@ func Test_loadConfig(t *testing.T) {
 
 		const missingInputs = "cloneFolderPath: /path/to/backup"
 
-		err := os.WriteFile(path.Join(configFolder, "config.yml"), []byte(missingInputs), 0666)
+		err := os.WriteFile(path.Join(configFolder, "config.yml"), []byte(missingInputs), 0644)
 		if err != nil {
 			t.FailNow()
 		}
@@ -101,7 +101,7 @@ prometheus:
   autoConvertNames: false
 `
 
-		err := os.WriteFile(path.Join(configFolder, "config.yml"), []byte(multipleInputWithSameNameConfig), 0666)
+		err := os.WriteFile(path.Join(configFolder, "config.yml"), []byte(multipleInputWithSameNameConfig), 0644)
 		if err != nil {
 			t.FailNow()
 		}
@@ -150,7 +150,7 @@ prometheus:
   autoConvertNames: false
 `
 
-		err := os.WriteFile(path.Join(configFolder, "config.yml"), []byte(goodConfigFile), 0666)
+		err := os.WriteFile(path.Join(configFolder, "config.yml"), []byte(goodConfigFile), 0644)
 		if err != nil {
 			t.FailNow()
 		}

@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
+	"path"
 	"regexp"
 	"time"
 
@@ -72,12 +74,26 @@ func main() {
 		panic(fmt.Errorf("sync_delay must be a positive duration strictly superior to 0: %v", cfg.SyncDelay))
 	}
 
+	stat, err := os.Stat(cfg.CloneFolderPath)
+	if err != nil {
+		panic(fmt.Errorf("could not get stat for clone folder path: %w", err))
+	}
+
+	if !stat.IsDir() {
+		panic(fmt.Errorf("could not proceed. clone folder path is not a directory: %v", cfg.CloneFolderPath))
+	}
+
 	for _, input := range cfg.Inputs {
 		client, err := github.GetGithubVCS(input.TargetURL, input.APIToken)
 		if err != nil {
 			panic(fmt.Errorf("could not start github client %w", err))
 		}
-		localGit := system_git.GetLocalGit(cfg.CloneFolderPath, entity.Auth{Token: input.APIToken})
+		localInputCloneFolder := path.Join(cfg.CloneFolderPath, input.Name)
+		err = os.MkdirAll(localInputCloneFolder, os.ModePerm)
+		if err != nil {
+			panic(fmt.Errorf("could not create local clone folder for %v. path is %v", input.Name, localInputCloneFolder))
+		}
+		localGit := system_git.GetLocalGit(localInputCloneFolder, entity.Auth{Token: input.APIToken})
 
 		var ignoredRepositoriesRegex []*regexp.Regexp
 		for _, i := range input.IgnoreRepositoriesRegex {
