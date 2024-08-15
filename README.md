@@ -30,8 +30,8 @@ cloneFolderPath: "path/to/clone/folder"
 ignoreRepositoriesRegex: []
 influxDB: # Optional
   url: "influx-url"
-  token: "influx-token"
-  orgName: "influx-org-name"
+  authToken: "influx-token"
+  organizationName: "influx-org-name"
   bucketName: "influx-bucket-name"
 prometheus:
   exposedPort: 1000 # exposed port for prometheus consumption

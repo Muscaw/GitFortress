@@ -83,6 +83,9 @@ type Config struct {
 }
 
 func (c *Config) Validate() error {
+	if len(c.Inputs) == 0 {
+		return fmt.Errorf("expected to have at least one input")
+	}
 	for _, i := range c.Inputs {
 		if err := i.Validate(); err != nil {
 			return err
@@ -111,14 +114,16 @@ func setDefaultValues() {
 	viper.SetDefault("SyncDelay", "5m")
 }
 
-func LoadConfig() Config {
+func init() {
 	usr, _ := user.Current()
 	homeDir := usr.HomeDir
-
-	viper.SetConfigName("config")
-	viper.SetConfigType("yaml")
 	viper.AddConfigPath(filepath.Join(homeDir, ".config/gitfortress/"))
 	viper.AddConfigPath("/etc/gitfortress/")
+}
+
+func LoadConfig() Config {
+	viper.SetConfigName("config")
+	viper.SetConfigType("yaml")
 	setDefaultValues()
 
 	if err := viper.ReadInConfig(); err != nil {

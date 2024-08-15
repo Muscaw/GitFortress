@@ -10,8 +10,8 @@ ignoreRepositoriesRegex: # Optional
   - ^Muscaw/UnwantedRepo[1-7]$ # Will ignore UnwantedRepo 1 through 7
 influxDB: # Block is optional if influx is unused. If the influx_db block is created, all inner fields are mandatory
   url: "http://influxurl"
-  token: "influx_token"
-  orgName: "org_name"
+  authToken: "influx_token"
+  organizationName: "org_name"
   bucketName: "bucket_name"
 prometheus: # Block is optional if prometheus is unused
   exposedPort: 1234 # Mandatory if prometheus block is defined
