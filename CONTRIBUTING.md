@@ -14,7 +14,4 @@ We're thrilled you're considering contributing to GitFortress! Here's how you ca
 - Ensure your code has been tested.
 - Submit a PR!
 
-### Conduct
-- Please be respectful and follow our Code of Conduct in all interactions.
-
 Thank you for your contributions to GitFortress!
