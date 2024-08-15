@@ -60,8 +60,7 @@ jobs:
         with:
           images: muscaw/gitfortress
           tags: |
-            type=ref,event=branch
-            type=ref,event=pr
+            type=edge,branch=main
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
       - name: Build docker image
