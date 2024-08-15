@@ -1,16 +1,18 @@
-github_url: <your-github-url> # Optional, defaults to the public cloud Github
-github_token: <your-github-token> # Mandatory
-clone_folder_path: /path/to/backup # Mandatory
-ignore_repositories_regex: # Optional
-  - ^Muscaw/UnwantedRepo$      # Targets only Muscaw/UnwantedRepo
-  - Muscaw/UnwantedRepo        # Targets any repo containing the substring Muscaw/UnwantedRepo
-  - ^Muscaw/SetOfUnwanted.*$   # Anything starting with Muscaw/SetOfUnwanted will be ignored
+inputs:
+  - type: github
+    targetUrl: <your-github-url> # Mandatory. Use https://api.github.com for public Github cloud
+    apiToken: <your-github-token> # Mandatory
+cloneFolderPath: /path/to/backup # Mandatory
+ignoreRepositoriesRegex: # Optional
+  - ^Muscaw/UnwantedRepo$ # Targets only Muscaw/UnwantedRepo
+  - Muscaw/UnwantedRepo # Targets any repo containing the substring Muscaw/UnwantedRepo
+  - ^Muscaw/SetOfUnwanted.*$ # Anything starting with Muscaw/SetOfUnwanted will be ignored
   - ^Muscaw/UnwantedRepo[1-7]$ # Will ignore UnwantedRepo 1 through 7
-influx_db: # Block is optional if influx is unused. If the influx_db block is created, all inner fields are mandatory
+influxDB: # Block is optional if influx is unused. If the influx_db block is created, all inner fields are mandatory
   url: "http://influxurl"
-  token: "influx_token"
-  org_name: "org_name"
-  bucket_name: "bucket_name"
+  authToken: "influx_token"
+  organizationName: "org_name"
+  bucketName: "bucket_name"
 prometheus: # Block is optional if prometheus is unused
-  exposed_port: 1234 # Mandatory if prometheus block is defined
-  auto_convert_names: false # Optional. Whether to automatically add _total for counter type metrics
+  exposedPort: 1234 # Mandatory if prometheus block is defined
+  autoConvertNames: false # Optional. Whether to automatically add _total for counter type metrics

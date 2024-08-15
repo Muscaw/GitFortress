@@ -2,6 +2,7 @@ package prometheus
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -10,6 +11,8 @@ import (
 	"github.com/Muscaw/GitFortress/internal/domain/metrics/entity"
 	"github.com/Muscaw/GitFortress/internal/domain/metrics/service"
 )
+
+const PROMETHEUS_PORT = 8080
 
 type fakeMetricsService struct {
 	metricsPort service.MetricsPort
@@ -20,7 +23,7 @@ func (f *fakeMetricsService) Push(metric entity.MetricInformation, valueNames []
 }
 
 func getMetricsBody(t *testing.T) string {
-	res, err := http.Get("http://localhost:8080/metrics")
+	res, err := http.Get(fmt.Sprintf("http://localhost:%v/metrics", PROMETHEUS_PORT))
 	if err != nil {
 		t.Fatal("could not get metrics endpoint")
 	}
@@ -36,7 +39,7 @@ func getMetricsBody(t *testing.T) string {
 func Test_prometheus_library_publishes_correct_metrics(t *testing.T) {
 	prometheusHandler := NewPrometheusMetricsHandler(
 		MetricsHandlerOpts{
-			ExposedPort:      8080,
+			ExposedPort:      PROMETHEUS_PORT,
 			AutoConvertNames: false,
 			MetricPrefix:     "gitfortress",
 		},
