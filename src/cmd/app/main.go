@@ -64,18 +64,6 @@ func main() {
 	ctx := context.Background()
 	metricsService.Start(ctx)
 
-	githubConfig := cfg.Inputs[0]
-
-	client, err := github.GetGithubVCS(githubConfig.TargetURL, githubConfig.APIToken)
-	if err != nil {
-		panic(fmt.Errorf("could not start github client %w", err))
-	}
-	localGit := system_git.GetLocalGit(cfg.CloneFolderPath, entity.Auth{Token: githubConfig.APIToken})
-
-	var ignoredRepositoriesRegex []*regexp.Regexp
-	for _, i := range cfg.IgnoreRepositoriesRegex {
-		ignoredRepositoriesRegex = append(ignoredRepositoriesRegex, regexp.MustCompile(i))
-	}
 	delay, err := time.ParseDuration(cfg.SyncDelay)
 	if err != nil {
 		panic(fmt.Errorf("could not parse configuration sync_delay value %v", cfg.SyncDelay))
@@ -83,7 +71,20 @@ func main() {
 	if delay.Seconds() <= 0 {
 		panic(fmt.Errorf("sync_delay must be a positive duration strictly superior to 0: %v", cfg.SyncDelay))
 	}
-	application.ScheduleEvery(&Ticker{time.NewTicker(delay)}, ctx, func() {
-		application.SynchronizeRepos(ignoredRepositoriesRegex, localGit, client)
-	})
+
+	for _, input := range cfg.Inputs {
+		client, err := github.GetGithubVCS(input.TargetURL, input.APIToken)
+		if err != nil {
+			panic(fmt.Errorf("could not start github client %w", err))
+		}
+		localGit := system_git.GetLocalGit(cfg.CloneFolderPath, entity.Auth{Token: input.APIToken})
+
+		var ignoredRepositoriesRegex []*regexp.Regexp
+		for _, i := range input.IgnoreRepositoriesRegex {
+			ignoredRepositoriesRegex = append(ignoredRepositoriesRegex, regexp.MustCompile(i))
+		}
+		application.ScheduleEvery(&Ticker{time.NewTicker(delay)}, ctx, func() {
+			application.SynchronizeRepos(ignoredRepositoriesRegex, localGit, client)
+		})
+	}
 }
