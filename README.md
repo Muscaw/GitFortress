@@ -21,37 +21,27 @@ docker pull muscaw/gitfortress:latest
 ### Config File
 Create a `config.yml` file with the following structure:
 ```
-github_token: "Your Github PAT token"
-sync_delay: "5m" # Uses Golang's units. Valid time units are "ns", "us", "ms", "s", "m", "h"
-clone_folder_path: "path/to/clone/folder"
-ignore_repositories_regex: []
-influx_db: # Optional
+inputs:
+  - type: github
+    targetUrl: https://api.github.com
+    apiToken: "Your Github PAT token"
+syncDelay: "5m" # Uses Golang's units. Valid time units are "ns", "us", "ms", "s", "m", "h"
+cloneFolderPath: "path/to/clone/folder"
+ignoreRepositoriesRegex: []
+influxDB: # Optional
   url: "influx-url"
   token: "influx-token"
-  org_name: "influx-org-name"
-  bucket_name: "influx-bucket-name"
+  orgName: "influx-org-name"
+  bucketName: "influx-bucket-name"
 prometheus:
-  exposed_port: 1000 # exposed port for prometheus consumption
-  auto_convert_names: false # whether to automatically add a marker for counter type metrics such as _total
+  exposedPort: 1000 # exposed port for prometheus consumption
+  autoConvertNames: false # whether to automatically add a marker for counter type metrics such as _total
 ```
 
 GitFortress reads the following paths in the given order. If it finds a valid config file, it will use it and not search for the next config files.
 - $HOME/.config/gitfortress/config.yml
 - /etc/gitfortress/config.yml
 
-All the fields of the config file can be passed through environment variables with the following pattern:
-`GITFORTRESS_field_name`
-
-Example:
-```
-GITFORTRESS_GITHUB_TOKEN
-GITFORTRESS_CLONE_FOLDER_PATH
-```
-
-Environment variables that refer to lists can be passed using commas to delimit the items: 
-```
-GITFORTRESS_IGNORE_REPOSITORIES_REGEX=^first-regex$,^second-regex$
-```
 
 #### Fields Explanation
 

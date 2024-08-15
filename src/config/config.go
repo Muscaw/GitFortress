@@ -2,47 +2,140 @@ package config
 
 import (
 	"fmt"
-	"github.com/ilyakaznacheev/cleanenv"
 	"os/user"
 	"path/filepath"
+
+	"github.com/spf13/viper"
 )
 
-type Config struct {
-	GithubURL               string   `yaml:"github_url" env:"GITFORTRESS_GITHUB_URL" env-default:"https://api.github.com/"`
-	GithubToken             string   `yaml:"github_token" env:"GITFORTRESS_GITHUB_TOKEN" env-required:"true"`
-	CloneFolderPath         string   `yaml:"clone_folder_path" env:"GITFORTRESS_CLONE_FOLDER_PATH"`
-	IgnoreRepositoriesRegex []string `yaml:"ignore_repositories_regex" env:"GITFORTRESS_IGNORE_REPOSITORIES_REGEX" env-default:""`
-	SyncDelay               string   `yaml:"sync_delay" env:"GITFORTRESS_SYNC_DELAY" env-default:"5m"`
-	InfluxDBConfig          *struct {
-		InfluxDBUrl       string `yaml:"url" env:"GITFORTRESS_INFLUXDB_URL" env-required:"true"`
-		InfluxDBAuthToken string `yaml:"token" env:"GITFORTRESS_INFLUXDB_TOKEN" env-required:"false"`
-		OrganizationName  string `yaml:"org_name" env:"GITFORTRESS_INFLUXDB_ORG_NAME" env-required:"true"`
-		BucketName        string `yaml:"bucket_name" env:"GITFORTRESS_INFLUXDB_BUCKET_NAME" env-required:"true"`
-	} `yaml:"influx_db"`
-	PrometheusConfig *struct {
-		PrometheusExposedPort int  `yaml:"exposed_port" env:"GITFORTRESS_PROMETHEUS_EXPOSED_PORT" env-required:"true"`
-		AutoConvertNames      bool `yaml:"auto_convert_names" env:"GITFORTRESS_PROMETHEUS_AUTO_CONVERT_NAMES" env-required:"false" env-default:"false"`
-	} `yaml:"prometheus"`
-}
+var supportedInputTypes = []string{"github"}
 
-func parseConfigFiles(configPaths ...string) (Config, error) {
-	var config Config
-	for _, configFile := range configPaths {
-		err := cleanenv.ReadConfig(configFile, &config)
-		if err == nil {
-			return config, nil
+func isInputTypeSupported(inputType string) bool {
+	for _, supportedInputType := range supportedInputTypes {
+		if supportedInputType == inputType {
+			return true
 		}
 	}
-	return config, fmt.Errorf("could not read config in the following locations: %v", configPaths)
+	return false
+}
+
+type Input struct {
+	Type      string
+	TargetURL string
+	APIToken  string
+}
+
+func (i *Input) Validate() error {
+	if !isInputTypeSupported(i.Type) {
+		return fmt.Errorf("input type is not supported: %v List of supported types: %v", i.Type, supportedInputTypes)
+	}
+	if i.TargetURL == "" {
+		return fmt.Errorf("input targetUrl must be set")
+	}
+	if i.APIToken == "" {
+		return fmt.Errorf("input apiToken must be set")
+	}
+	return nil
+}
+
+type InfluxDBConfig struct {
+	Url              string
+	AuthToken        string
+	OrganizationName string
+	BucketName       string
+}
+
+func (i *InfluxDBConfig) Validate() error {
+	if i.Url == "" {
+		return fmt.Errorf("influx url must be set")
+	}
+	if i.AuthToken == "" {
+		return fmt.Errorf("influx authToken must be set")
+	}
+	if i.OrganizationName == "" {
+		return fmt.Errorf("influx organizationName must be set")
+	}
+	if i.BucketName == "" {
+		return fmt.Errorf("influx bucketName must be set")
+	}
+	return nil
+}
+
+type PrometheusConfig struct {
+	ExposedPort      int
+	AutoConvertNames bool
+}
+
+func (p *PrometheusConfig) Validate() error {
+	if p.ExposedPort == 0 {
+		return fmt.Errorf("prometheus.exposedPort can not be 0")
+	}
+	return nil
+}
+
+type Config struct {
+	Inputs                  []Input
+	CloneFolderPath         string
+	IgnoreRepositoriesRegex []string
+	SyncDelay               string
+	InfluxDB                *InfluxDBConfig
+	Prometheus              *PrometheusConfig
+}
+
+func (c *Config) Validate() error {
+	for _, i := range c.Inputs {
+		if err := i.Validate(); err != nil {
+			return err
+		}
+	}
+	if c.CloneFolderPath == "" {
+		return fmt.Errorf("CloneFolderPath is empty")
+	}
+	if c.SyncDelay == "" {
+		return fmt.Errorf("SyncDelay is empty")
+	}
+	if c.InfluxDB != nil {
+		if err := c.InfluxDB.Validate(); err != nil {
+			return err
+		}
+	}
+	if c.Prometheus != nil {
+		if err := c.Prometheus.Validate(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func setDefaultValues() {
+	viper.SetDefault("SyncDelay", "5m")
 }
 
 func LoadConfig() Config {
-
 	usr, _ := user.Current()
 	homeDir := usr.HomeDir
-	config, err := parseConfigFiles(filepath.Join(homeDir, ".config/gitfortress/config.yml"), "/etc/gitfortress/config.yml")
+
+	viper.SetConfigName("config")
+	viper.SetConfigType("yaml")
+	viper.AddConfigPath(filepath.Join(homeDir, ".config/gitfortress/"))
+	viper.AddConfigPath("/etc/gitfortress/")
+	setDefaultValues()
+
+	if err := viper.ReadInConfig(); err != nil {
+		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+			panic(fmt.Errorf("could not find config file: %w", err))
+		}
+		panic(fmt.Errorf("could not load config file: %w", err))
+	}
+
+	var config Config
+	err := viper.Unmarshal(&config)
 	if err != nil {
-		panic(fmt.Sprintf("could not unmarshal configuration. reason: %+v", err))
+		panic(fmt.Errorf("could not unmarshal configuration: %w", err))
+	}
+	err = config.Validate()
+	if err != nil {
+		panic(fmt.Errorf("could not validate config: %w", err))
 	}
 	return config
 }

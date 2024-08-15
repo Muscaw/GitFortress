@@ -3,12 +3,13 @@ package main
 import (
 	"context"
 	"fmt"
+	"regexp"
+	"time"
+
 	"github.com/Muscaw/GitFortress/internal/application/metrics"
 	"github.com/Muscaw/GitFortress/internal/interfaces/influx"
 	"github.com/Muscaw/GitFortress/internal/interfaces/prometheus"
 	"github.com/rs/zerolog"
-	"regexp"
-	"time"
 
 	"github.com/Muscaw/GitFortress/config"
 	"github.com/Muscaw/GitFortress/internal/application"
@@ -38,22 +39,22 @@ func main() {
 
 	metricsService := metrics.GetMetricsService()
 	commonMetricNamePrefix := "gitfortress"
-	if cfg.InfluxDBConfig != nil {
-		influxConfig := cfg.InfluxDBConfig
+	if cfg.InfluxDB != nil {
+		influxConfig := cfg.InfluxDB
 		influxMetricHandler := influx.NewInfluxMetricsHandler(influx.MetricHandlerOpts{
-			InfluxDBUrl:       influxConfig.InfluxDBUrl,
-			InfluxDBAuthToken: influxConfig.InfluxDBAuthToken,
+			InfluxDBUrl:       influxConfig.Url,
+			InfluxDBAuthToken: influxConfig.AuthToken,
 			InfluxDBOrg:       influxConfig.OrganizationName,
 			InfluxDBBucket:    influxConfig.BucketName,
 			MetricNamePrefix:  commonMetricNamePrefix,
 		})
 		metricsService.RegisterHandler(influxMetricHandler)
 	}
-	if cfg.PrometheusConfig != nil {
-		prometheusConfig := cfg.PrometheusConfig
+	if cfg.Prometheus != nil {
+		prometheusConfig := cfg.Prometheus
 		prometheusMetricHandler := prometheus.NewPrometheusMetricsHandler(
 			prometheus.MetricsHandlerOpts{
-				ExposedPort:      prometheusConfig.PrometheusExposedPort,
+				ExposedPort:      prometheusConfig.ExposedPort,
 				AutoConvertNames: prometheusConfig.AutoConvertNames,
 				MetricPrefix:     commonMetricNamePrefix,
 			},
@@ -63,11 +64,13 @@ func main() {
 	ctx := context.Background()
 	metricsService.Start(ctx)
 
-	client, err := github.GetGithubVCS(cfg.GithubURL, cfg.GithubToken)
+	githubConfig := cfg.Inputs[0]
+
+	client, err := github.GetGithubVCS(githubConfig.TargetURL, githubConfig.APIToken)
 	if err != nil {
 		panic(fmt.Errorf("could not start github client %w", err))
 	}
-	localGit := system_git.GetLocalGit(cfg.CloneFolderPath, entity.Auth{Token: cfg.GithubToken})
+	localGit := system_git.GetLocalGit(cfg.CloneFolderPath, entity.Auth{Token: githubConfig.APIToken})
 
 	var ignoredRepositoriesRegex []*regexp.Regexp
 	for _, i := range cfg.IgnoreRepositoriesRegex {
