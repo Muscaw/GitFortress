@@ -74,6 +74,58 @@ func Test_loadConfig(t *testing.T) {
 		t.FailNow()
 
 	})
+	t.Run("configuration input has multiple times the same name", func(t *testing.T) {
+		viper.Reset()
+		viper.AddConfigPath(configFolder)
+
+		const goodConfigFile string = `---
+inputs:
+  - name: "Some input name"
+    type: github
+    targetUrl: https://selfhosted.github.com
+    apiToken: some-token
+  - name: "Some input name"
+    type: github
+    targetUrl: https://api.github.com
+    apiToken: some-token
+cloneFolderPath: /path/to/backup
+ignoreRepositoriesRegex:
+  - a-repo-name
+influxDB:
+  url: "http://influxurl"
+  authToken: "influx_token"
+  organizationName: "org_name"
+  bucketName: "bucket_name"
+prometheus:
+  exposedPort: 1234
+  autoConvertNames: false
+`
+
+		err := os.WriteFile(path.Join(configFolder, "config.yml"), []byte(goodConfigFile), 0666)
+		if err != nil {
+			t.FailNow()
+		}
+		b, _ := os.ReadFile(path.Join(configFolder, "config.yml"))
+		fmt.Print(string(b))
+
+		defer func() {
+			if r := recover(); r != nil {
+				if msg, ok := r.(error); ok {
+					if !strings.Contains(msg.Error(), "could not validate config: inputs must have unique names.") {
+						t.Fatalf("unexpected panic error returned: %v", msg.Error())
+					}
+				} else {
+					t.FailNow()
+				}
+			} else {
+				t.Fatalf("LoadConfig did not panic on missing configuration")
+			}
+		}()
+
+		LoadConfig()
+		// Should never come here as LoadConfig should panic
+		t.FailNow()
+	})
 
 	t.Run("configuration is parsed successfully", func(t *testing.T) {
 		viper.Reset()
