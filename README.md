@@ -25,9 +25,9 @@ inputs:
   - type: github
     targetUrl: https://api.github.com
     apiToken: "Your Github PAT token"
+    ignoreRepositoriesRegex: []
 syncDelay: "5m" # Uses Golang's units. Valid time units are "ns", "us", "ms", "s", "m", "h"
 cloneFolderPath: "path/to/clone/folder"
-ignoreRepositoriesRegex: []
 influxDB: # Optional
   url: "influx-url"
   authToken: "influx-token"
