@@ -17,10 +17,11 @@ type GithubInput struct {
 }
 
 type Input struct {
-	Name      string
-	Type      string
-	TargetURL string
-	APIToken  string
+	Name                    string
+	Type                    string
+	TargetURL               string
+	APIToken                string
+	IgnoreRepositoriesRegex []string
 }
 
 func (i *Input) Validate() error {
@@ -95,7 +96,7 @@ func (p *PrometheusConfig) Validate() error {
 }
 
 type Config struct {
-	Inputs          Input
+	Inputs          []Input
 	CloneFolderPath string
 	SyncDelay       string
 	InfluxDB        *InfluxDBConfig
