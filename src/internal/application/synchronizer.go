@@ -1,12 +1,13 @@
 package application
 
 import (
+	"os"
 	"regexp"
 
 	"github.com/Muscaw/GitFortress/internal/application/metrics"
 	metricsEntity "github.com/Muscaw/GitFortress/internal/domain/metrics/entity"
 	"github.com/Muscaw/GitFortress/internal/domain/vcs/service"
-	"github.com/rs/zerolog/log"
+	"github.com/rs/zerolog"
 
 	"github.com/Muscaw/GitFortress/internal/domain/vcs/entity"
 )
@@ -36,7 +37,8 @@ func isIgnoredRepository(ignoredRepositories []*regexp.Regexp, repository entity
 	return false
 }
 
-func SynchronizeRepos(ignoredRepositories []*regexp.Regexp, localVcs service.LocalVCS, remoteVcs service.VCS) {
+func SynchronizeRepos(inputName string, ignoredRepositories []*regexp.Regexp, localVcs service.LocalVCS, remoteVcs service.VCS) {
+	log := zerolog.New(os.Stdout).With().Timestamp().Str("input", inputName).Logger()
 	remoteRepos, err := remoteVcs.ListOwnedRepositories()
 	if err != nil {
 		log.Err(err).Msg("could not list all owned repos")

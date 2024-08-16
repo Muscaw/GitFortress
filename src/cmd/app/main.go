@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/signal"
 	"path"
 	"regexp"
+	"syscall"
 	"time"
 
 	"github.com/Muscaw/GitFortress/internal/application/metrics"
@@ -37,6 +39,8 @@ func (t *Ticker) Stop() {
 }
 
 func main() {
+	zerolog.TimeFieldFormat = "2006-01-02T15:04:05.999Z07:00"
+
 	cfg := config.LoadConfig()
 
 	metricsService := metrics.GetMetricsService()
@@ -63,7 +67,7 @@ func main() {
 		)
 		metricsService.RegisterHandler(prometheusMetricHandler)
 	}
-	ctx := context.Background()
+	ctx, cancelFunc := context.WithCancel(context.Background())
 	metricsService.Start(ctx)
 
 	delay, err := time.ParseDuration(cfg.SyncDelay)
@@ -99,8 +103,13 @@ func main() {
 		for _, i := range input.IgnoreRepositoriesRegex {
 			ignoredRepositoriesRegex = append(ignoredRepositoriesRegex, regexp.MustCompile(i))
 		}
-		application.ScheduleEvery(&Ticker{time.NewTicker(delay)}, ctx, func() {
-			application.SynchronizeRepos(ignoredRepositoriesRegex, localGit, client)
+		go application.ScheduleEvery(&Ticker{time.NewTicker(delay)}, ctx, func() {
+			application.SynchronizeRepos(input.Name, ignoredRepositoriesRegex, localGit, client)
 		})
 	}
+
+	done := make(chan os.Signal, 1)
+	signal.Notify(done, syscall.SIGINT, syscall.SIGTERM)
+	<-done
+	cancelFunc()
 }
