@@ -62,7 +62,8 @@ func (i *influxMetricHandler) handleMetric(ctx context.Context, writeApi api.Wri
 	}
 }
 
-func (i *influxMetricHandler) Start(ctx context.Context) {
+func (i *influxMetricHandler) Start(ctx context.Context, doneFunc service.DoneFunc) {
+	defer doneFunc()
 	influxClient := influxdb2.NewClient(i.influxDbServerUrl, i.influxDbAuthToken)
 	writeApi := influxClient.WriteAPIBlocking(i.org, i.bucket)
 

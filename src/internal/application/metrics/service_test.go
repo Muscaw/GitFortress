@@ -2,6 +2,7 @@ package metrics
 
 import (
 	"context"
+	"github.com/Muscaw/GitFortress/internal/domain/metrics/service"
 	"sync"
 	"testing"
 
@@ -26,7 +27,7 @@ type fakePort struct {
 	handleCallCount   int
 }
 
-func (f *fakePort) Start(ctx context.Context) {
+func (f *fakePort) Start(ctx context.Context, doneFunc service.DoneFunc) {
 	defer f.startWg.Done()
 	f.isStarted = true
 }
@@ -44,7 +45,7 @@ func Test_metricsService_TrackCounter(t *testing.T) {
 	fakePort := fakePort{}
 	metricsService.RegisterHandler(&fakePort)
 	fakePort.startWg.Add(1)
-	metricsService.Start(context.Background())
+	metricsService.Start(
 	fakePort.startWg.Wait()
 
 	// Act
@@ -77,7 +78,7 @@ func Test_metricsService_TrackGauge(t *testing.T) {
 	fakePort := fakePort{}
 	metricsService.RegisterHandler(&fakePort)
 	fakePort.startWg.Add(1)
-	metricsService.Start(context.Background())
+	metricsService.Start(
 	fakePort.startWg.Wait()
 
 	// Act
@@ -116,7 +117,7 @@ func Test_metricsService_StartMultipleHandlers(t *testing.T) {
 	// Act
 	fakePort1.startWg.Add(1)
 	fakePort2.startWg.Add(1)
-	metricsService.Start(context.Background())
+	metricsService.Start(
 	fakePort1.startWg.Wait()
 	fakePort2.startWg.Wait()
 

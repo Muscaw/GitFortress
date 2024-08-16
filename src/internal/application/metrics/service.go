@@ -2,6 +2,7 @@ package metrics
 
 import (
 	"context"
+	"sync"
 
 	"github.com/Muscaw/GitFortress/internal/domain/metrics/entity"
 	metricsservice "github.com/Muscaw/GitFortress/internal/domain/metrics/service"
@@ -33,9 +34,12 @@ func (m *metricsService) RegisterHandler(handler metricsservice.MetricsPort) {
 	m.handlers = append(m.handlers, handler)
 }
 
-func (m *metricsService) Start(ctx context.Context) {
+func (m *metricsService) Start(wg *sync.WaitGroup, ctx context.Context) {
 	for _, handler := range m.handlers {
-		go handler.Start(ctx)
+		wg.Add(1)
+		go handler.Start(ctx, func() {
+			wg.Done()
+		})
 	}
 }
 

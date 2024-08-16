@@ -46,7 +46,7 @@ func Test_prometheus_library_publishes_correct_metrics(t *testing.T) {
 	)
 
 	ctx, cancel := context.WithCancel(context.Background())
-	go prometheusHandler.Start(ctx)
+	go prometheusHandler.Start(ctx, nil)
 	defer cancel()
 
 	body := getMetricsBody(t)

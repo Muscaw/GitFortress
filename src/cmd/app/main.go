@@ -3,10 +3,12 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/rs/zerolog/log"
 	"os"
 	"os/signal"
 	"path"
 	"regexp"
+	"sync"
 	"syscall"
 	"time"
 
@@ -68,7 +70,8 @@ func main() {
 		metricsService.RegisterHandler(prometheusMetricHandler)
 	}
 	ctx, cancelFunc := context.WithCancel(context.Background())
-	metricsService.Start(ctx)
+	var wg sync.WaitGroup
+	metricsService.Start(&wg, ctx)
 
 	delay, err := time.ParseDuration(cfg.SyncDelay)
 	if err != nil {
@@ -103,7 +106,7 @@ func main() {
 		for _, i := range input.IgnoreRepositoriesRegex {
 			ignoredRepositoriesRegex = append(ignoredRepositoriesRegex, regexp.MustCompile(i))
 		}
-		go application.ScheduleEvery(&Ticker{time.NewTicker(delay)}, ctx, func() {
+		go application.ScheduleEvery(&wg, &Ticker{time.NewTicker(delay)}, ctx, func() {
 			application.SynchronizeRepos(input.Name, ignoredRepositoriesRegex, localGit, client)
 		})
 	}
@@ -112,4 +115,6 @@ func main() {
 	signal.Notify(done, syscall.SIGINT, syscall.SIGTERM)
 	<-done
 	cancelFunc()
+	log.Info().Msg("Shutting down GitFortress")
+	wg.Wait()
 }

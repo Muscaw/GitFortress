@@ -2,15 +2,15 @@ package prometheus
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"net/http"
-
 	"github.com/Muscaw/GitFortress/internal/domain/metrics/entity"
 	"github.com/Muscaw/GitFortress/internal/domain/metrics/service"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog/log"
+	"net/http"
 )
 
 type handleTuple struct {
@@ -126,7 +126,8 @@ type prometheusMetricHandler struct {
 	metricHandler    metricHandler
 }
 
-func (p *prometheusMetricHandler) handleMetric(ctx context.Context) {
+func (p *prometheusMetricHandler) handleMetric(ctx context.Context, doneFunc service.DoneFunc) {
+	defer doneFunc()
 	for {
 		select {
 		case m := <-p.metricChan:
@@ -147,9 +148,9 @@ func (p *prometheusMetricHandler) handleMetric(ctx context.Context) {
 	}
 }
 
-func (p *prometheusMetricHandler) Start(ctx context.Context) {
-	go p.handleMetric(ctx)
-	if err := p.server.ListenAndServe(); err != http.ErrServerClosed {
+func (p *prometheusMetricHandler) Start(ctx context.Context, doneFunc service.DoneFunc) {
+	go p.handleMetric(ctx, doneFunc)
+	if err := p.server.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
 		log.Err(err).Msgf("could not start http listener on port %v", p.exposedPort)
 	}
 }

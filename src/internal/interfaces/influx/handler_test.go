@@ -71,7 +71,7 @@ func Test_influx_handler_pushes_metrics_as_expected(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	go influxMetricsHandler.Start(ctx)
+	go influxMetricsHandler.Start(ctx, nil)
 
 	metricsService := &fakeMetricsService{metricsPort: influxMetricsHandler}
 
