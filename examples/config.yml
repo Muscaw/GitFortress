@@ -1,12 +1,12 @@
 inputs:
-  - type: github
-    targetUrl: <your-github-url> # Mandatory. Use https://api.github.com for public Github cloud
-    apiToken: <your-github-token> # Mandatory
-    ignoreRepositoriesRegex: # Optional
-      - ^Muscaw/UnwantedRepo$ # Targets only Muscaw/UnwantedRepo
-      - Muscaw/UnwantedRepo # Targets any repo containing the substring Muscaw/UnwantedRepo
-      - ^Muscaw/SetOfUnwanted.*$ # Anything starting with Muscaw/SetOfUnwanted will be ignored
-      - ^Muscaw/UnwantedRepo[1-7]$ # Will ignore UnwantedRepo 1 through 7
+  github:
+    - targetUrl: <your-github-url> # Mandatory. Use https://api.github.com for public Github cloud
+      apiToken: <your-github-token> # Mandatory
+      ignoreRepositoriesRegex: # Optional
+        - ^Muscaw/UnwantedRepo$ # Targets only Muscaw/UnwantedRepo
+        - Muscaw/UnwantedRepo # Targets any repo containing the substring Muscaw/UnwantedRepo
+        - ^Muscaw/SetOfUnwanted.*$ # Anything starting with Muscaw/SetOfUnwanted will be ignored
+        - ^Muscaw/UnwantedRepo[1-7]$ # Will ignore UnwantedRepo 1 through 7
 cloneFolderPath: /path/to/backup # Mandatory
 influxDB: # Block is optional if influx is unused. If the influx_db block is created, all inner fields are mandatory
   url: "http://influxurl"
