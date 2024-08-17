@@ -107,7 +107,7 @@ func main() {
 			ignoredRepositoriesRegex = append(ignoredRepositoriesRegex, regexp.MustCompile(i))
 		}
 		go application.ScheduleEvery(&wg, &Ticker{time.NewTicker(delay)}, ctx, func() {
-			application.SynchronizeRepos(input.Name, ignoredRepositoriesRegex, localGit, client)
+			application.SynchronizeRepos(ctx, input.Name, ignoredRepositoriesRegex, localGit, client)
 		})
 	}
 

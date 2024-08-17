@@ -2,6 +2,7 @@ package application
 
 import (
 	"context"
+	"sync"
 	"testing"
 	"time"
 )
@@ -29,7 +30,8 @@ func Test_scheduleEvery(t *testing.T) {
 	}()
 
 	runCount := 0
-	ScheduleEvery(&ticker, ctx, func() {
+	var wg sync.WaitGroup
+	ScheduleEvery(&wg, &ticker, ctx, func() {
 		runCount += 1
 	})
 

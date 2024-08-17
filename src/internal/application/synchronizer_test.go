@@ -1,6 +1,7 @@
 package application
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"testing"
@@ -193,7 +194,7 @@ func Test_SynchronizeRepos(t *testing.T) {
 		localVcs := fakeLocalVcs{ownedRepos: []entity.Repository{}}
 		ignoredRepositories := []*regexp.Regexp{}
 
-		SynchronizeRepos(SOME_INPUT, ignoredRepositories, &localVcs, &remoteVcs)
+		SynchronizeRepos(context.Background(), SOME_INPUT, ignoredRepositories, &localVcs, &remoteVcs)
 
 		expectedClonedAndSynchronizedRepos := []entity.Repository{aRepository}
 		if !containsAll(localVcs.clonedRepositories, expectedClonedAndSynchronizedRepos) {
@@ -210,7 +211,7 @@ func Test_SynchronizeRepos(t *testing.T) {
 		localVcs := fakeLocalVcs{ownedRepos: []entity.Repository{aRepository}}
 		ignoredRepositories := []*regexp.Regexp{}
 
-		SynchronizeRepos(SOME_INPUT, ignoredRepositories, &localVcs, &remoteVcs)
+		SynchronizeRepos(context.Background(), SOME_INPUT, ignoredRepositories, &localVcs, &remoteVcs)
 
 		if len(localVcs.clonedRepositories) != 0 {
 			t.Error("locally available repository should not be cloned again")
@@ -227,7 +228,7 @@ func Test_SynchronizeRepos(t *testing.T) {
 		localVcs := fakeLocalVcs{ownedRepos: []entity.Repository{aRepository}}
 		ignoredRepositories := []*regexp.Regexp{}
 
-		SynchronizeRepos(SOME_INPUT, ignoredRepositories, &localVcs, &remoteVcs)
+		SynchronizeRepos(context.Background(), SOME_INPUT, ignoredRepositories, &localVcs, &remoteVcs)
 
 		if len(localVcs.clonedRepositories) != 0 {
 			t.Error("locally available repository should not be cloned again")
@@ -244,7 +245,7 @@ func Test_SynchronizeRepos(t *testing.T) {
 		localVcs := fakeLocalVcs{ownedRepos: []entity.Repository{}}
 		ignoredRepositories := []*regexp.Regexp{ignoredRepositoryRegex}
 
-		SynchronizeRepos(SOME_INPUT, ignoredRepositories, &localVcs, &remoteVcs)
+		SynchronizeRepos(context.Background(), SOME_INPUT, ignoredRepositories, &localVcs, &remoteVcs)
 
 		expectedClonedAndSynchronizedRepos := []entity.Repository{aRepository}
 		if !containsAll(localVcs.clonedRepositories, expectedClonedAndSynchronizedRepos) {
@@ -262,7 +263,7 @@ func Test_SynchronizeRepos(t *testing.T) {
 		localVcs := fakeLocalVcs{ownedRepos: []entity.Repository{anIgnoredRepository}}
 		ignoredRepositories := []*regexp.Regexp{ignoredRepositoryRegex}
 
-		SynchronizeRepos(SOME_INPUT, ignoredRepositories, &localVcs, &remoteVcs)
+		SynchronizeRepos(context.Background(), SOME_INPUT, ignoredRepositories, &localVcs, &remoteVcs)
 
 		if len(localVcs.clonedRepositories) != 0 {
 			t.Error("locally available repository should not be cloned again")
@@ -279,7 +280,7 @@ func Test_SynchronizeRepos(t *testing.T) {
 		localVcs := fakeLocalVcs{}
 		ignoredRepositories := []*regexp.Regexp{}
 
-		SynchronizeRepos(SOME_INPUT, ignoredRepositories, &localVcs, &remoteVcs)
+		SynchronizeRepos(context.Background(), SOME_INPUT, ignoredRepositories, &localVcs, &remoteVcs)
 
 		if len(localVcs.clonedRepositories) != 0 {
 			t.Error("should not clone repos if an error is return before")
@@ -290,7 +291,7 @@ func Test_SynchronizeRepos(t *testing.T) {
 		localVcs := fakeLocalVcs{errorOnListOwnedRepos: fmt.Errorf("could not list repos")}
 		ignoredRepositories := []*regexp.Regexp{}
 
-		SynchronizeRepos(SOME_INPUT, ignoredRepositories, &localVcs, &remoteVcs)
+		SynchronizeRepos(context.Background(), SOME_INPUT, ignoredRepositories, &localVcs, &remoteVcs)
 
 		if len(localVcs.clonedRepositories) != 0 {
 			t.Error("should not clone repos if an error is return before")
@@ -306,7 +307,7 @@ func Test_SynchronizeRepos(t *testing.T) {
 		localVcs := fakeLocalVcs{ownedRepos: []entity.Repository{}, errorOnCloneRepos: fmt.Errorf("could not list repos")}
 		ignoredRepositories := []*regexp.Regexp{}
 
-		SynchronizeRepos(SOME_INPUT, ignoredRepositories, &localVcs, &remoteVcs)
+		SynchronizeRepos(context.Background(), SOME_INPUT, ignoredRepositories, &localVcs, &remoteVcs)
 
 		if len(localVcs.clonedRepositories) != 0 {
 			t.Error("should have cloned repos and fail on them")
@@ -322,7 +323,7 @@ func Test_SynchronizeRepos(t *testing.T) {
 		localVcs := fakeLocalVcs{ownedRepos: []entity.Repository{}, errorOnSynchonizeRepos: fmt.Errorf("some error")}
 		ignoredRepositories := []*regexp.Regexp{}
 
-		SynchronizeRepos(SOME_INPUT, ignoredRepositories, &localVcs, &remoteVcs)
+		SynchronizeRepos(context.Background(), SOME_INPUT, ignoredRepositories, &localVcs, &remoteVcs)
 
 		expectedClonedRepositories := []entity.Repository{aRepository}
 

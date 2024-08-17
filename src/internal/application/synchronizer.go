@@ -1,6 +1,7 @@
 package application
 
 import (
+	"context"
 	"os"
 	"regexp"
 
@@ -37,7 +38,7 @@ func isIgnoredRepository(ignoredRepositories []*regexp.Regexp, repository entity
 	return false
 }
 
-func SynchronizeRepos(inputName string, ignoredRepositories []*regexp.Regexp, localVcs service.LocalVCS, remoteVcs service.VCS) {
+func SynchronizeRepos(ctx context.Context, inputName string, ignoredRepositories []*regexp.Regexp, localVcs service.LocalVCS, remoteVcs service.VCS) {
 	log := zerolog.New(os.Stdout).With().Timestamp().Str("input", inputName).Logger()
 	remoteRepos, err := remoteVcs.ListOwnedRepositories()
 	if err != nil {
@@ -68,6 +69,11 @@ func SynchronizeRepos(inputName string, ignoredRepositories []*regexp.Regexp, lo
 				clonedReposCount += 1
 			}
 		}
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
 	}
 
 	localRepos, err = localVcs.ListOwnedRepositories()
@@ -85,6 +91,11 @@ func SynchronizeRepos(inputName string, ignoredRepositories []*regexp.Regexp, lo
 			log.Error().Err(err).Msgf("could not pull repository %v", localRepo.GetFullName())
 		} else {
 			numberOfSynchronizedRepositories += 1
+		}
+		select {
+		case <-ctx.Done():
+			return
+		default:
 		}
 	}
 	numberOfRepos.SetInts(map[string]int{
