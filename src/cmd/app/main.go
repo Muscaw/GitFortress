@@ -3,7 +3,13 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/rs/zerolog/log"
+	"os"
+	"os/signal"
+	"path"
 	"regexp"
+	"sync"
+	"syscall"
 	"time"
 
 	"github.com/Muscaw/GitFortress/internal/application/metrics"
@@ -35,6 +41,8 @@ func (t *Ticker) Stop() {
 }
 
 func main() {
+	zerolog.TimeFieldFormat = "2006-01-02T15:04:05.999Z07:00"
+
 	cfg := config.LoadConfig()
 
 	metricsService := metrics.GetMetricsService()
@@ -61,21 +69,10 @@ func main() {
 		)
 		metricsService.RegisterHandler(prometheusMetricHandler)
 	}
-	ctx := context.Background()
-	metricsService.Start(ctx)
+	ctx, cancelFunc := context.WithCancel(context.Background())
+	var wg sync.WaitGroup
+	metricsService.Start(&wg, ctx)
 
-	githubConfig := cfg.Inputs[0]
-
-	client, err := github.GetGithubVCS(githubConfig.TargetURL, githubConfig.APIToken)
-	if err != nil {
-		panic(fmt.Errorf("could not start github client %w", err))
-	}
-	localGit := system_git.GetLocalGit(cfg.CloneFolderPath, entity.Auth{Token: githubConfig.APIToken})
-
-	var ignoredRepositoriesRegex []*regexp.Regexp
-	for _, i := range cfg.IgnoreRepositoriesRegex {
-		ignoredRepositoriesRegex = append(ignoredRepositoriesRegex, regexp.MustCompile(i))
-	}
 	delay, err := time.ParseDuration(cfg.SyncDelay)
 	if err != nil {
 		panic(fmt.Errorf("could not parse configuration sync_delay value %v", cfg.SyncDelay))
@@ -83,7 +80,41 @@ func main() {
 	if delay.Seconds() <= 0 {
 		panic(fmt.Errorf("sync_delay must be a positive duration strictly superior to 0: %v", cfg.SyncDelay))
 	}
-	application.ScheduleEvery(&Ticker{time.NewTicker(delay)}, ctx, func() {
-		application.SynchronizeRepos(ignoredRepositoriesRegex, localGit, client)
-	})
+
+	stat, err := os.Stat(cfg.CloneFolderPath)
+	if err != nil {
+		panic(fmt.Errorf("could not get stat for clone folder path: %w", err))
+	}
+
+	if !stat.IsDir() {
+		panic(fmt.Errorf("could not proceed. clone folder path is not a directory: %v", cfg.CloneFolderPath))
+	}
+
+	for _, input := range cfg.Inputs {
+		client, err := github.GetGithubVCS(input.TargetURL, input.APIToken)
+		if err != nil {
+			panic(fmt.Errorf("could not start github client %w", err))
+		}
+		localInputCloneFolder := path.Join(cfg.CloneFolderPath, input.Name)
+		err = os.MkdirAll(localInputCloneFolder, os.ModePerm)
+		if err != nil {
+			panic(fmt.Errorf("could not create local clone folder for %v. path is %v", input.Name, localInputCloneFolder))
+		}
+		localGit := system_git.GetLocalGit(localInputCloneFolder, entity.Auth{Token: input.APIToken})
+
+		var ignoredRepositoriesRegex []*regexp.Regexp
+		for _, i := range input.IgnoreRepositoriesRegex {
+			ignoredRepositoriesRegex = append(ignoredRepositoriesRegex, regexp.MustCompile(i))
+		}
+		go application.ScheduleEvery(&wg, &Ticker{time.NewTicker(delay)}, ctx, func() {
+			application.SynchronizeRepos(ctx, input.Name, ignoredRepositoriesRegex, localGit, client)
+		})
+	}
+
+	done := make(chan os.Signal, 1)
+	signal.Notify(done, syscall.SIGINT, syscall.SIGTERM)
+	<-done
+	cancelFunc()
+	log.Info().Msg("Shutting down GitFortress")
+	wg.Wait()
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os/user"
 	"path/filepath"
+	"strings"
 
 	"github.com/spf13/viper"
 )
@@ -20,12 +21,17 @@ func isInputTypeSupported(inputType string) bool {
 }
 
 type Input struct {
-	Type      string
-	TargetURL string
-	APIToken  string
+	Name                    string
+	Type                    string
+	TargetURL               string
+	APIToken                string
+	IgnoreRepositoriesRegex []string
 }
 
 func (i *Input) Validate() error {
+	if i.Name == "" {
+		return fmt.Errorf("input name must be set")
+	}
 	if !isInputTypeSupported(i.Type) {
 		return fmt.Errorf("input type is not supported: %v List of supported types: %v", i.Type, supportedInputTypes)
 	}
@@ -74,22 +80,36 @@ func (p *PrometheusConfig) Validate() error {
 }
 
 type Config struct {
-	Inputs                  []Input
-	CloneFolderPath         string
-	IgnoreRepositoriesRegex []string
-	SyncDelay               string
-	InfluxDB                *InfluxDBConfig
-	Prometheus              *PrometheusConfig
+	Inputs          []Input
+	CloneFolderPath string
+	SyncDelay       string
+	InfluxDB        *InfluxDBConfig
+	Prometheus      *PrometheusConfig
+}
+
+func (c *Config) Process() {
+	usr, _ := user.Current()
+	dir := usr.HomeDir
+	if c.CloneFolderPath == "~" {
+		c.CloneFolderPath = dir
+	} else if strings.HasPrefix(c.CloneFolderPath, "~/") {
+		c.CloneFolderPath = filepath.Join(dir, c.CloneFolderPath[2:])
+	}
 }
 
 func (c *Config) Validate() error {
 	if len(c.Inputs) == 0 {
 		return fmt.Errorf("expected to have at least one input")
 	}
+	inputNames := map[string]bool{}
 	for _, i := range c.Inputs {
 		if err := i.Validate(); err != nil {
 			return err
 		}
+		if _, exists := inputNames[i.Name]; exists {
+			return fmt.Errorf("inputs must have unique names. name %v appears at least twice", i.Name)
+		}
+		inputNames[i.Name] = true
 	}
 	if c.CloneFolderPath == "" {
 		return fmt.Errorf("CloneFolderPath is empty")
@@ -142,5 +162,6 @@ func LoadConfig() Config {
 	if err != nil {
 		panic(fmt.Errorf("could not validate config: %w", err))
 	}
+	config.Process()
 	return config
 }

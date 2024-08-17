@@ -6,7 +6,6 @@ import (
 	"github.com/rs/zerolog/log"
 	"io/fs"
 	"os"
-	"os/user"
 	"path/filepath"
 	"strings"
 
@@ -198,13 +197,6 @@ func (l localGitVCS) SynchronizeRepository(repository entity.Repository) error {
 }
 
 func GetLocalGit(cloneDirectory string, remoteAuthentication entity.Auth) service.LocalVCS {
-	usr, _ := user.Current()
-	dir := usr.HomeDir
-	if cloneDirectory == "~" {
-		cloneDirectory = dir
-	} else if strings.HasPrefix(cloneDirectory, "~/") {
-		cloneDirectory = filepath.Join(dir, cloneDirectory[2:])
-	}
 	return &localGitVCS{cloneDirectory: cloneDirectory, authentication: remoteAuthentication}
 }
 

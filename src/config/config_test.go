@@ -48,7 +48,7 @@ func Test_loadConfig(t *testing.T) {
 
 		const missingInputs = "cloneFolderPath: /path/to/backup"
 
-		err := os.WriteFile(path.Join(configFolder, "config.yml"), []byte(missingInputs), 0666)
+		err := os.WriteFile(path.Join(configFolder, "config.yml"), []byte(missingInputs), 0644)
 		if err != nil {
 			t.FailNow()
 		}
@@ -74,14 +74,18 @@ func Test_loadConfig(t *testing.T) {
 		t.FailNow()
 
 	})
-
-	t.Run("configuration is parsed successfully", func(t *testing.T) {
+	t.Run("configuration input has multiple times the same name", func(t *testing.T) {
 		viper.Reset()
 		viper.AddConfigPath(configFolder)
 
-		const goodConfigFile string = `---
+		const multipleInputWithSameNameConfig string = `---
 inputs:
-  - type: github
+  - name: "Some input name"
+    type: github
+    targetUrl: https://selfhosted.github.com
+    apiToken: some-token
+  - name: "Some input name"
+    type: github
     targetUrl: https://api.github.com
     apiToken: some-token
 cloneFolderPath: /path/to/backup
@@ -97,7 +101,56 @@ prometheus:
   autoConvertNames: false
 `
 
-		err := os.WriteFile(path.Join(configFolder, "config.yml"), []byte(goodConfigFile), 0666)
+		err := os.WriteFile(path.Join(configFolder, "config.yml"), []byte(multipleInputWithSameNameConfig), 0644)
+		if err != nil {
+			t.FailNow()
+		}
+		b, _ := os.ReadFile(path.Join(configFolder, "config.yml"))
+		fmt.Print(string(b))
+
+		defer func() {
+			if r := recover(); r != nil {
+				if msg, ok := r.(error); ok {
+					if !strings.Contains(msg.Error(), "could not validate config: inputs must have unique names.") {
+						t.Fatalf("unexpected panic error returned: %v", msg.Error())
+					}
+				} else {
+					t.FailNow()
+				}
+			} else {
+				t.Fatalf("LoadConfig did not panic on missing configuration")
+			}
+		}()
+
+		LoadConfig()
+		// Should never come here as LoadConfig should panic
+		t.FailNow()
+	})
+
+	t.Run("configuration is parsed successfully", func(t *testing.T) {
+		viper.Reset()
+		viper.AddConfigPath(configFolder)
+
+		const goodConfigFile string = `---
+inputs:
+  - name: "Some input name"
+    type: github
+    targetUrl: https://api.github.com
+    apiToken: some-token
+    ignoreRepositoriesRegex:
+      - a-repo-name
+cloneFolderPath: /path/to/backup
+influxDB:
+  url: "http://influxurl"
+  authToken: "influx_token"
+  organizationName: "org_name"
+  bucketName: "bucket_name"
+prometheus:
+  exposedPort: 1234
+  autoConvertNames: false
+`
+
+		err := os.WriteFile(path.Join(configFolder, "config.yml"), []byte(goodConfigFile), 0644)
 		if err != nil {
 			t.FailNow()
 		}
@@ -112,12 +165,11 @@ prometheus:
 
 		config := LoadConfig()
 		expectedConfig := Config{
-			Inputs:                  []Input{{Type: "github", TargetURL: "https://api.github.com", APIToken: "some-token"}},
-			CloneFolderPath:         "/path/to/backup",
-			IgnoreRepositoriesRegex: []string{"a-repo-name"},
-			InfluxDB:                &InfluxDBConfig{Url: "http://influxurl", AuthToken: "influx_token", OrganizationName: "org_name", BucketName: "bucket_name"},
-			Prometheus:              &PrometheusConfig{ExposedPort: 1234, AutoConvertNames: false},
-			SyncDelay:               "5m",
+			Inputs:          []Input{{Name: "Some input name", Type: "github", TargetURL: "https://api.github.com", APIToken: "some-token", IgnoreRepositoriesRegex: []string{"a-repo-name"}}},
+			CloneFolderPath: "/path/to/backup",
+			InfluxDB:        &InfluxDBConfig{Url: "http://influxurl", AuthToken: "influx_token", OrganizationName: "org_name", BucketName: "bucket_name"},
+			Prometheus:      &PrometheusConfig{ExposedPort: 1234, AutoConvertNames: false},
+			SyncDelay:       "5m",
 		}
 
 		if !reflect.DeepEqual(expectedConfig, config) {
