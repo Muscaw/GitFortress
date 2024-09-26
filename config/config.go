@@ -16,6 +16,12 @@ type GithubInput struct {
 	IgnoreRepositoriesRegex []string
 }
 
+func (i *GithubInput) FillDefaultValues() {
+    if i.TargetURL == "" {
+        i.TargetURL = "https://api.github.com"
+    }
+}
+
 func (i *GithubInput) Validate() error {
 	if i.Name == "" {
 		return fmt.Errorf("input name must be set")
@@ -30,7 +36,7 @@ func (i *GithubInput) Validate() error {
 }
 
 type Input struct {
-	Github []GithubInput
+	Github []*GithubInput
 }
 
 func (i *Input) Validate() error {
@@ -39,6 +45,7 @@ func (i *Input) Validate() error {
 	}
 	inputNames := map[string]bool{}
 	for _, g := range i.Github {
+        g.FillDefaultValues()
 		g.Validate()
 		if _, exists := inputNames[g.Name]; exists {
 			return fmt.Errorf("inputs must have unique names. name %v appears at least twice", g.Name)
