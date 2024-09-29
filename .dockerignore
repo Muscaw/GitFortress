@@ -5,7 +5,6 @@ README.md
 build.sh
 test.sh
 dev/
-docker/
 examples/
 .vscode/
 build/
