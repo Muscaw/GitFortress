@@ -3,9 +3,7 @@
 set -eux pipefail
 
 function build() {
-  pushd src
   env GOOS=$1 GOARCH=$2 go build -o ../build/gitfortress-$1-$2 cmd/app/main.go
-  popd
 }
 
 

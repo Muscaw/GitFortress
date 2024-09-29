@@ -4,7 +4,7 @@ ENV app_name=gitfortress
 
 FROM base as builder
 
-COPY src/ /app/
+COPY . /app/
 WORKDIR /app
 ENV GOPATH=/app
 RUN go build -o $app_name cmd/app/main.go

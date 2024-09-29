@@ -4,3 +4,4 @@ main
 .idea/
 build/
 **/__debug_bin*
+coverage.out
