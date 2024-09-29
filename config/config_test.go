@@ -165,7 +165,7 @@ prometheus:
 		config := LoadConfig()
 		expectedConfig := Config{
 			Inputs: Input{
-				Github: []GithubInput{{Name: "Some input name", TargetURL: "https://api.github.com", APIToken: "some-token", IgnoreRepositoriesRegex: []string{"a-repo-name"}}},
+				Github: []*GithubInput{{Name: "Some input name", TargetURL: "https://api.github.com", APIToken: "some-token", IgnoreRepositoriesRegex: []string{"a-repo-name"}}},
 			},
 			CloneFolderPath: "/path/to/backup",
 			InfluxDB:        &InfluxDBConfig{Url: "http://influxurl", AuthToken: "influx_token", OrganizationName: "org_name", BucketName: "bucket_name"},
