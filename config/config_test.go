@@ -84,6 +84,10 @@ inputs:
     type: github
     targetUrl: https://api.github.com
     apiToken: some-token
+  - name: "Some input name"
+    type: github
+    targetUrl: http://someinternal.github.com
+    apiToken: some-other-token
 cloneFolderPath: /path/to/backup
 ignoreRepositoriesRegex:
   - a-repo-name

@@ -9,19 +9,23 @@ import (
 	"github.com/spf13/viper"
 )
 
-type GithubInput struct {
-	Name                    string
-	TargetURL               string
-	APIToken                string
-	IgnoreRepositoriesRegex []string
-}
-
 type Input struct {
 	Name                    string
 	Type                    string
 	TargetURL               string
 	APIToken                string
 	IgnoreRepositoriesRegex []string
+}
+
+var supportedInputTypes = []string{"github"}
+
+func isInputTypeSupported(inputType string) bool {
+	for _, t := range supportedInputTypes {
+		if t == inputType {
+			return true
+		}
+	}
+	return false
 }
 
 func (i *Input) Validate() error {
@@ -36,26 +40,6 @@ func (i *Input) Validate() error {
 	}
 	if i.APIToken == "" {
 		return fmt.Errorf("input apiToken must be set")
-	}
-	return nil
-}
-
-type Input struct {
-	Github []*GithubInput
-}
-
-func (i *Input) Validate() error {
-	if len(i.Github) == 0 {
-		return fmt.Errorf("expected to have at least one input")
-	}
-	inputNames := map[string]bool{}
-	for _, g := range i.Github {
-        g.FillDefaultValues()
-		g.Validate()
-		if _, exists := inputNames[g.Name]; exists {
-			return fmt.Errorf("inputs must have unique names. name %v appears at least twice", g.Name)
-		}
-		inputNames[g.Name] = true
 	}
 	return nil
 }
