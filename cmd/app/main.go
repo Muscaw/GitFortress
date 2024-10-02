@@ -42,12 +42,22 @@ func (t *Ticker) Stop() {
 	t.ticker.Stop()
 }
 
-func createInputService(input *config.Input) service.VCS {
+func createGithubInputService(input *config.Input) service.VCS {
 	client, err := github.GetGithubVCS(input.TargetURL, input.APIToken)
 	if err != nil {
 		panic(fmt.Errorf("could not start github client %w", err))
 	}
 	return client
+}
+
+var typeToVCS = map[string]func(*config.Input) service.VCS{"github": createGithubInputService}
+
+func createInputService(input *config.Input) service.VCS {
+	val, ok := typeToVCS[input.Type]
+	if !ok {
+		panic(fmt.Errorf("unsupported input type: %v", input.Type))
+	}
+	return val(input)
 }
 
 func main() {
