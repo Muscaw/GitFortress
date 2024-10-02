@@ -33,7 +33,7 @@ func (i *Input) Validate() error {
 		return fmt.Errorf("input name must be set")
 	}
 	if !isInputTypeSupported(i.Type) {
-		return fmt.Errorf("input type is not supported: %v List of supported types: %v", i.Type, supportedInputTypes)
+		return fmt.Errorf("input type is not supported: %v. List of supported types: %v", i.Type, supportedInputTypes)
 	}
 	if i.TargetURL == "" {
 		return fmt.Errorf("input targetUrl must be set")
