@@ -1,6 +1,5 @@
 package main
 
-
 import (
 	"context"
 	"fmt"
@@ -22,6 +21,7 @@ import (
 	"github.com/Muscaw/GitFortress/config"
 	"github.com/Muscaw/GitFortress/internal/application"
 	"github.com/Muscaw/GitFortress/internal/domain/vcs/entity"
+	"github.com/Muscaw/GitFortress/internal/domain/vcs/service"
 	"github.com/Muscaw/GitFortress/internal/interfaces/github"
 	"github.com/Muscaw/GitFortress/internal/interfaces/system_git"
 )
@@ -40,6 +40,14 @@ func (t *Ticker) C() <-chan time.Time {
 
 func (t *Ticker) Stop() {
 	t.ticker.Stop()
+}
+
+func createInputService(input *config.Input) service.VCS {
+	client, err := github.GetGithubVCS(input.TargetURL, input.APIToken)
+	if err != nil {
+		panic(fmt.Errorf("could not start github client %w", err))
+	}
+	return client
 }
 
 func main() {
@@ -93,10 +101,7 @@ func main() {
 	}
 
 	for _, input := range cfg.Inputs {
-		client, err := github.GetGithubVCS(input.TargetURL, input.APIToken)
-		if err != nil {
-			panic(fmt.Errorf("could not start github client %w", err))
-		}
+		client := createInputService(&input)
 		localInputCloneFolder := path.Join(cfg.CloneFolderPath, input.Name)
 		err = os.MkdirAll(localInputCloneFolder, os.ModePerm)
 		if err != nil {
