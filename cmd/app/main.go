@@ -60,6 +60,25 @@ func createInputService(input *config.Input) service.VCS {
 	return val(input)
 }
 
+func startSynchronizationProcess(ctx context.Context, delay time.Duration, wg *sync.WaitGroup, cfg *config.Config, input *config.Input) {
+	client := createInputService(input)
+	localInputCloneFolder := path.Join(cfg.CloneFolderPath, input.Name)
+	err := os.MkdirAll(localInputCloneFolder, os.ModePerm)
+	if err != nil {
+		panic(fmt.Errorf("could not create local clone folder for %v. path is %v", input.Name, localInputCloneFolder))
+	}
+	localGit := system_git.GetLocalGit(localInputCloneFolder, entity.Auth{Token: input.APIToken})
+
+	var ignoredRepositoriesRegex []*regexp.Regexp
+	for _, i := range input.IgnoreRepositoriesRegex {
+		ignoredRepositoriesRegex = append(ignoredRepositoriesRegex, regexp.MustCompile(i))
+	}
+	go application.ScheduleEvery(wg, &Ticker{time.NewTicker(delay)}, ctx, func() {
+		application.SynchronizeRepos(ctx, input.Name, ignoredRepositoriesRegex, localGit, client)
+	})
+
+}
+
 func main() {
 	zerolog.TimeFieldFormat = "2006-01-02T15:04:05.999Z07:00"
 
@@ -111,21 +130,7 @@ func main() {
 	}
 
 	for _, input := range cfg.Inputs {
-		client := createInputService(&input)
-		localInputCloneFolder := path.Join(cfg.CloneFolderPath, input.Name)
-		err = os.MkdirAll(localInputCloneFolder, os.ModePerm)
-		if err != nil {
-			panic(fmt.Errorf("could not create local clone folder for %v. path is %v", input.Name, localInputCloneFolder))
-		}
-		localGit := system_git.GetLocalGit(localInputCloneFolder, entity.Auth{Token: input.APIToken})
-
-		var ignoredRepositoriesRegex []*regexp.Regexp
-		for _, i := range input.IgnoreRepositoriesRegex {
-			ignoredRepositoriesRegex = append(ignoredRepositoriesRegex, regexp.MustCompile(i))
-		}
-		go application.ScheduleEvery(&wg, &Ticker{time.NewTicker(delay)}, ctx, func() {
-			application.SynchronizeRepos(ctx, input.Name, ignoredRepositoriesRegex, localGit, client)
-		})
+		startSynchronizationProcess(ctx, delay, &wg, &cfg, &input)
 	}
 
 	done := make(chan os.Signal, 1)
