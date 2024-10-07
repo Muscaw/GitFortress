@@ -13,3 +13,6 @@ cover: _run_tests
 
 build:
     ./build.sh
+
+run:
+    go run cmd/app/main.go
