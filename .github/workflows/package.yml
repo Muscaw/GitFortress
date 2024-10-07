@@ -14,13 +14,15 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - uses: extractions/setup-just@v2
+
       - name: Set Up Go
         uses: actions/setup-go@v4
         with:
           go-version: "1.22"
 
-      - name: Run tests
-        run: go test -race -coverprofile=coverage.txt -covermode=atomic ./...
+      - name: Build and run tests
+        run: just ci
         env:
           GITFORTRESS_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -28,9 +30,6 @@ jobs:
         uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-
-      - name: Build
-        run: ./build.sh
 
       - name: Generate release
         uses: softprops/action-gh-release@v1
