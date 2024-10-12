@@ -14,6 +14,7 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/Muscaw/GitFortress/internal/application/metrics"
+	"github.com/Muscaw/GitFortress/internal/interfaces/gitlab"
 	"github.com/Muscaw/GitFortress/internal/interfaces/influx"
 	"github.com/Muscaw/GitFortress/internal/interfaces/prometheus"
 	"github.com/rs/zerolog"
@@ -50,7 +51,18 @@ func createGithubInputService(input *config.Input) service.VCS {
 	return client
 }
 
-var typeToVCS = map[string]func(*config.Input) service.VCS{"github": createGithubInputService}
+func createGitlabInputService(input *config.Input) service.VCS {
+	client, err := gitlab.GetGitlabVCS(input.TargetURL, input.APIToken)
+	if err != nil {
+		panic(fmt.Errorf("could not start gitlab client %w", err))
+	}
+	return client
+}
+
+var typeToVCS = map[string]func(*config.Input) service.VCS{
+	"github": createGithubInputService,
+	"gitlab": createGitlabInputService,
+}
 
 func createInputService(input *config.Input) service.VCS {
 	val, ok := typeToVCS[input.Type]
