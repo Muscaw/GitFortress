@@ -17,7 +17,7 @@ type Input struct {
 	IgnoreRepositoriesRegex []string
 }
 
-var supportedInputTypes = []string{"github"}
+var supportedInputTypes = []string{"github", "gitlab"}
 
 func isInputTypeSupported(inputType string) bool {
 	for _, t := range supportedInputTypes {

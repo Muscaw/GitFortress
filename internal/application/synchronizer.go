@@ -64,7 +64,7 @@ func SynchronizeRepos(ctx context.Context, inputName string, ignoredRepositories
 			log.Info().Msgf("cloning repository %v", remoteRepo.GetFullName())
 			err := localVcs.CloneRepository(remoteRepo)
 			if err != nil {
-				log.Printf("could not clone repository %v because %+v", remoteRepo.GetFullName(), err)
+				log.Err(err).Msgf("could not clone repository %v", remoteRepo.GetFullName())
 			} else {
 				clonedReposCount += 1
 			}

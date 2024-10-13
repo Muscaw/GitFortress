@@ -63,7 +63,7 @@ func getGitlabClient(gitlabUrl string, gitlabToken string) (*gitlab.Client, erro
 func gitlabProjectToDomainRepository(project *gitlab.Project) entity.Repository {
 	return entity.Repository{
 		OwnerName:      entity.OwnerName{Name: project.Owner.Username},
-		RepositoryName: entity.RepositoryName{Name: project.Name},
-		Remote:         entity.Remote{Name: "origin", HttpUrl: project.ImportURL},
+		RepositoryName: entity.RepositoryName{Name: project.Path},
+		Remote:         entity.Remote{Name: "origin", HttpUrl: project.HTTPURLToRepo},
 	}
 }
