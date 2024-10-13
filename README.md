@@ -22,10 +22,17 @@ docker pull muscaw/gitfortress:latest
 Create a `config.yml` file with the following structure:
 ```
 inputs:
-  - type: github
+  - name: "Github"
+    type: github
     targetUrl: https://api.github.com
     apiToken: "Your Github PAT token"
     ignoreRepositoriesRegex: []
+  - name: "Gitlab"
+    type: gitlab
+    targetUrl: https://gitlab.com
+    apiToken: "Your Gitlab PAT token"
+    ignoreRepositoriesRegex: []
+  
 syncDelay: "5m" # Uses Golang's units. Valid time units are "ns", "us", "ms", "s", "m", "h"
 cloneFolderPath: "path/to/clone/folder"
 influxDB: # Optional
@@ -53,7 +60,15 @@ See [examples/config.yml](examples/config.yml)
 2. Navigate to Developer settings > Personal access tokens > Generate new token.
 3. Select `repo` to grant full control of private repositories.
 4. Click on the `Generate token` button.
-5. Copy the generated token to your `config.yml` as the `github_token` value.
+5. Copy the generated token to your `config.yml` as the `apiToken` value for your Github configuration.
+
+### Generating a Gitlab PAT
+1. Go to Gitlab Preferences.
+2. Navigate to "Access tokens"
+3. Add new token
+4. Select the permissions `read_api`, `read_user`, `read_repository`
+5. Click on Create personal access token
+6. Copy the generated token to your `config.yml` as the `apiToken` value for your Gitlab configuration
 
 ### Usage Instructions
 
