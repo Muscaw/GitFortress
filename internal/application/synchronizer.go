@@ -98,7 +98,8 @@ func SynchronizeRepos(ctx context.Context, inputName string, ignoredRepositories
 		default:
 		}
 	}
-	numberOfRepos.SetInts(map[string]int{
+	numberOfRepos.SetValues(map[string]any{
+		"input_name":                      inputName,
 		"remote_repositories_count":       len(remoteRepos),
 		"local_repositories_count":        len(localRepos),
 		"ignored_repositories_count":      ignoredReposCount,
