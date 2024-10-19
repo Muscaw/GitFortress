@@ -1,6 +1,5 @@
 package main
 
-
 import (
 	"context"
 	"fmt"
@@ -15,6 +14,7 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/Muscaw/GitFortress/internal/application/metrics"
+	"github.com/Muscaw/GitFortress/internal/interfaces/gitlab"
 	"github.com/Muscaw/GitFortress/internal/interfaces/influx"
 	"github.com/Muscaw/GitFortress/internal/interfaces/prometheus"
 	"github.com/rs/zerolog"
@@ -22,6 +22,7 @@ import (
 	"github.com/Muscaw/GitFortress/config"
 	"github.com/Muscaw/GitFortress/internal/application"
 	"github.com/Muscaw/GitFortress/internal/domain/vcs/entity"
+	"github.com/Muscaw/GitFortress/internal/domain/vcs/service"
 	"github.com/Muscaw/GitFortress/internal/interfaces/github"
 	"github.com/Muscaw/GitFortress/internal/interfaces/system_git"
 )
@@ -40,6 +41,54 @@ func (t *Ticker) C() <-chan time.Time {
 
 func (t *Ticker) Stop() {
 	t.ticker.Stop()
+}
+
+func createGithubInputService(input *config.Input) service.VCS {
+	client, err := github.GetGithubVCS(input.TargetURL, input.APIToken)
+	if err != nil {
+		panic(fmt.Errorf("could not start github client %w", err))
+	}
+	return client
+}
+
+func createGitlabInputService(input *config.Input) service.VCS {
+	client, err := gitlab.GetGitlabVCS(input.TargetURL, input.APIToken)
+	if err != nil {
+		panic(fmt.Errorf("could not start gitlab client %w", err))
+	}
+	return client
+}
+
+var typeToVCS = map[string]func(*config.Input) service.VCS{
+	"github": createGithubInputService,
+	"gitlab": createGitlabInputService,
+}
+
+func createInputService(input *config.Input) service.VCS {
+	val, ok := typeToVCS[input.Type]
+	if !ok {
+		panic(fmt.Errorf("unsupported input type: %v", input.Type))
+	}
+	return val(input)
+}
+
+func startSynchronizationProcess(ctx context.Context, delay time.Duration, wg *sync.WaitGroup, cfg *config.Config, input *config.Input) {
+	client := createInputService(input)
+	localInputCloneFolder := path.Join(cfg.CloneFolderPath, input.Name)
+	err := os.MkdirAll(localInputCloneFolder, os.ModePerm)
+	if err != nil {
+		panic(fmt.Errorf("could not create local clone folder for %v. path is %v", input.Name, localInputCloneFolder))
+	}
+	localGit := system_git.GetLocalGit(localInputCloneFolder, entity.Auth{Token: input.APIToken})
+
+	var ignoredRepositoriesRegex []*regexp.Regexp
+	for _, i := range input.IgnoreRepositoriesRegex {
+		ignoredRepositoriesRegex = append(ignoredRepositoriesRegex, regexp.MustCompile(i))
+	}
+	go application.ScheduleEvery(wg, &Ticker{time.NewTicker(delay)}, ctx, func() {
+		application.SynchronizeRepos(ctx, input.Name, ignoredRepositoriesRegex, localGit, client)
+	})
+
 }
 
 func main() {
@@ -92,25 +141,8 @@ func main() {
 		panic(fmt.Errorf("could not proceed. clone folder path is not a directory: %v", cfg.CloneFolderPath))
 	}
 
-	for _, input := range cfg.Inputs.Github {
-		client, err := github.GetGithubVCS(input.TargetURL, input.APIToken)
-		if err != nil {
-			panic(fmt.Errorf("could not start github client %w", err))
-		}
-		localInputCloneFolder := path.Join(cfg.CloneFolderPath, input.Name)
-		err = os.MkdirAll(localInputCloneFolder, os.ModePerm)
-		if err != nil {
-			panic(fmt.Errorf("could not create local clone folder for %v. path is %v", input.Name, localInputCloneFolder))
-		}
-		localGit := system_git.GetLocalGit(localInputCloneFolder, entity.Auth{Token: input.APIToken})
-
-		var ignoredRepositoriesRegex []*regexp.Regexp
-		for _, i := range input.IgnoreRepositoriesRegex {
-			ignoredRepositoriesRegex = append(ignoredRepositoriesRegex, regexp.MustCompile(i))
-		}
-		go application.ScheduleEvery(&wg, &Ticker{time.NewTicker(delay)}, ctx, func() {
-			application.SynchronizeRepos(ctx, input.Name, ignoredRepositoriesRegex, localGit, client)
-		})
+	for _, input := range cfg.Inputs {
+		startSynchronizationProcess(ctx, delay, &wg, &cfg, &input)
 	}
 
 	done := make(chan os.Signal, 1)

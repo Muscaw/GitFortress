@@ -80,13 +80,14 @@ func Test_loadConfig(t *testing.T) {
 
 		const multipleInputWithSameNameConfig string = `---
 inputs:
-  github:
-    - name: "Some input name"
-      targetUrl: https://selfhosted.github.com
-      apiToken: some-token
-    - name: "Some input name"
-      targetUrl: https://api.github.com
-      apiToken: some-token
+  - name: "Some input name"
+    type: github
+    targetUrl: https://api.github.com
+    apiToken: some-token
+  - name: "Some input name"
+    type: github
+    targetUrl: http://someinternal.github.com
+    apiToken: some-other-token
 cloneFolderPath: /path/to/backup
 ignoreRepositoriesRegex:
   - a-repo-name
@@ -132,12 +133,12 @@ prometheus:
 
 		const goodConfigFile string = `---
 inputs:
-  github:
-    - name: "Some input name"
-      targetUrl: https://api.github.com
-      apiToken: some-token
-      ignoreRepositoriesRegex:
-        - a-repo-name
+  - name: "Some input name"
+    type: github
+    targetUrl: https://api.github.com
+    apiToken: some-token
+    ignoreRepositoriesRegex:
+      - a-repo-name
 cloneFolderPath: /path/to/backup
 influxDB:
   url: "http://influxurl"
@@ -164,9 +165,7 @@ prometheus:
 
 		config := LoadConfig()
 		expectedConfig := Config{
-			Inputs: Input{
-				Github: []*GithubInput{{Name: "Some input name", TargetURL: "https://api.github.com", APIToken: "some-token", IgnoreRepositoriesRegex: []string{"a-repo-name"}}},
-			},
+			Inputs:          []Input{{Name: "Some input name", Type: "github", TargetURL: "https://api.github.com", APIToken: "some-token", IgnoreRepositoriesRegex: []string{"a-repo-name"}}},
 			CloneFolderPath: "/path/to/backup",
 			InfluxDB:        &InfluxDBConfig{Url: "http://influxurl", AuthToken: "influx_token", OrganizationName: "org_name", BucketName: "bucket_name"},
 			Prometheus:      &PrometheusConfig{ExposedPort: 1234, AutoConvertNames: false},

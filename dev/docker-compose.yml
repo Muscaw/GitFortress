@@ -12,7 +12,8 @@ services:
     volumes:
       - prometheusVolume:/prometheus
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
-
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 volumes:
   influxVolume:
   prometheusVolume:

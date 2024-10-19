@@ -41,8 +41,19 @@ func parseGithubHttpUrl(url string) (string, string, error) {
 	return ownerRepo[0], parseRepositoryName(ownerRepo[1]), nil
 }
 
+var supportedRemoteGitProviders = []string{"github.com", "gitlab.com"}
+
+func isRemoteGitProviderSupported(remote entity.Remote) bool {
+	for _, v := range supportedRemoteGitProviders {
+		if strings.Contains(remote.HttpUrl, v) {
+			return true
+		}
+	}
+	return false
+}
+
 func parseOwnerRepositoryNameFromRemote(remote entity.Remote) (string, string, error) {
-	if strings.Contains(remote.HttpUrl, "github.com") {
+	if isRemoteGitProviderSupported(remote) {
 		if isHttpUrl(remote.HttpUrl) {
 			return parseGithubHttpUrl(remote.HttpUrl)
 		} else {
