@@ -2,22 +2,20 @@ package application
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"regexp"
 
 	"github.com/Muscaw/GitFortress/internal/application/metrics"
-	metricsEntity "github.com/Muscaw/GitFortress/internal/domain/metrics/entity"
 	"github.com/Muscaw/GitFortress/internal/domain/vcs/service"
 	"github.com/rs/zerolog"
 
 	"github.com/Muscaw/GitFortress/internal/domain/vcs/entity"
 )
 
-var numberOfRepos metricsEntity.Gauge
 var executionCount int = 1
 
 func init() {
-	numberOfRepos = metrics.GetMetricsService().TrackGauge("synchronization_run")
 }
 
 func contains(slice []entity.Repository, repository entity.Repository) bool {
@@ -40,6 +38,7 @@ func isIgnoredRepository(ignoredRepositories []*regexp.Regexp, repository entity
 
 func SynchronizeRepos(ctx context.Context, inputName string, ignoredRepositories []*regexp.Regexp, localVcs service.LocalVCS, remoteVcs service.VCS) {
 	log := zerolog.New(os.Stdout).With().Timestamp().Str("input", inputName).Logger()
+	numberOfRepos := metrics.GetMetricsService().TrackGauge(fmt.Sprintf("synchronization_run_%s", inputName))
 	remoteRepos, err := remoteVcs.ListOwnedRepositories()
 	if err != nil {
 		log.Err(err).Msg("could not list all owned repos")
