@@ -16,3 +16,6 @@ build:
 
 run:
     go run cmd/app/main.go
+
+env:
+    docker compose -f dev/docker-compose.yml up -d
