@@ -7,7 +7,6 @@ type Gauge interface {
 	SetFloat(valueName string, value float64)
 	SetInt(valueName string, value int)
 	SetInts(values map[string]int)
-	SetValues(values map[string]any)
 }
 
 type gauge struct {
@@ -35,15 +34,6 @@ func (g *gauge) SetInt(valueName string, value int) {
 }
 
 func (g *gauge) SetInts(values map[string]int) {
-	var keys []string
-	for k, v := range values {
-		g.values[k] = v
-		keys = append(keys, k)
-	}
-	g.pushToRegistry(keys)
-}
-
-func (g *gauge) SetValues(values map[string]any) {
 	var keys []string
 	for k, v := range values {
 		g.values[k] = v
